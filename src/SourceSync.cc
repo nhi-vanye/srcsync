@@ -1,7 +1,7 @@
 /**
- * \file psync.cc
+ * \file SourceSync.cc
  *
- * \brief - synchronize files as they change to a remote system using rsync protocol
+ * \brief - synchronize (source) files as they change to a remote system using rsync protocol
  *
  * \details
  * Given a directory to monitor as files are changed (edited) 
@@ -50,7 +50,7 @@
 #include "Poco/Notification.h"
 #include "Poco/NotificationQueue.h"
 
-#define APPNAME "psync"
+#define APPNAME "srcsync"
 
 
 #define CONFIG_HELP     APPNAME ".help"     // --help
@@ -60,11 +60,10 @@
 
 #include "MonitorDirectory.h"
 
+#include "SourceSync.h"
+
 SourceSync::SourceSync() 
 {
-
-    // initialize thisApp
-    thisApp = this;
 
     setUnixOptions( true );
     setLogger( Poco::Logger::get(APPNAME) );
@@ -120,17 +119,6 @@ void SourceSync::initialize( Poco::Util::Application &self )
     }
 }; 
 
-
-
-void handleNotification( FileChangedNotification* pNf) 
-{
-
-    Poco::AutoPtr<FileChangedNotification> nf(pNf);
-
-    logger().debug( nf->path() );
-
-};
-
 void SourceSync::displayHelp() 
 {
 
@@ -160,7 +148,7 @@ void SourceSync::defineOptions( Poco::Util::OptionSet &options )
             .required(false)
             .repeatable(false)
             .argument("LEVEL", true)
-            .callback(Poco::Util::OptionCallback<pSync>(this, &pSync::handleVerbose)));
+            .callback(Poco::Util::OptionCallback<SourceSync>(this, &SourceSync::handleVerbose)));
 
 
     options.addOption(
@@ -265,10 +253,6 @@ int SourceSync::main( const std::vector<std::string> &args ) {
                     config().getString( CONFIG_SRC ) ,
                     config().getString( CONFIG_DEST )  ) );
 
-        // register an observer for notifications
-        Poco::Observer<pSync, FileChangedNotification> obs(*this, &pSync::handleNotification);
-        queue_->addObserver(obs);
-
         // create a directory iterator for the source directory 
         // and spin up a MonitorDirectory instance for each one
         Poco::SimpleRecursiveDirectoryIterator dirIt( config().getString( CONFIG_SRC ) );
@@ -301,4 +285,4 @@ int SourceSync::main( const std::vector<std::string> &args ) {
     return exitStatus;
 };
 
-POCO_SERVER_MAIN(pSync);
+POCO_SERVER_MAIN(SourceSync);

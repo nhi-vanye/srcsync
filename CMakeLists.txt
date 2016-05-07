@@ -9,6 +9,7 @@ INCLUDE_DIRECTORIES(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${psync_BINARY_DIR}/usr/local/include
     ${psync_BINARY_DIR}/usr/local/include/libssh
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/include
 )
 
 LINK_DIRECTORIES( 
@@ -52,9 +53,9 @@ ExternalProject_Add(
     INSTALL_COMMAND make install DESTDIR=${PROJECT_BINARY_DIR}
 )
 
-ADD_EXECUTABLE( psync src/psync.cc )
+ADD_EXECUTABLE( srcsync src/SourceSync.cc src/MonitorDirectory.cc )
 
-TARGET_LINK_LIBRARIES( psync
+TARGET_LINK_LIBRARIES( srcsync
 
     PocoNet
     PocoUtil
@@ -65,7 +66,7 @@ TARGET_LINK_LIBRARIES( psync
     ssh2
 )
 
-ADD_DEPENDENCIES( psync
+ADD_DEPENDENCIES( srcsync
 
     poco
     libssh2
