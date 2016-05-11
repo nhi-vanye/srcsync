@@ -15,6 +15,7 @@ LINK_DIRECTORIES(
 )
 
 ADD_LIBRARY(acrosync SHARED
+
     rsync/rsync_client.cpp
     rsync/rsync_entry.cpp
     rsync/rsync_file.cpp
@@ -35,6 +36,18 @@ TARGET_LINK_LIBRARIES( acrosync
     iconv
 )
 
+ADD_EXECUTABLE(test-acrosync 
+    rsync/t_rsync_client.cpp
+)
+
+TARGET_LINK_LIBRARIES( test-acrosync 
+
+    acrosync
+    iconv
+)
+
+
+
 INSTALL(
     FILES
         rsync/rsync_client.h
@@ -50,7 +63,14 @@ INSTALL(
         rsync/rsync_timeutil.h
         rsync/rsync_util.h
 
-    DESTINATION include
+    DESTINATION include/rsync/
+)
+
+INSTALL(
+    FILES
+        block/block_out.h
+
+    DESTINATION include/block/
 )
 
 INSTALL(

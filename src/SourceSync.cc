@@ -25,9 +25,16 @@
  * Luckily we don't make any changes - we build straight from the git repo.
  *
  */
-
+#include "stdio.h"
+#include <string>
 #include <iostream>
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <sstream>
 
+#include "Poco/NestedDiagnosticContext.h"
 
 #include "Poco/Util/ServerApplication.h"
 #include "Poco/Util/HelpFormatter.h"
@@ -41,6 +48,7 @@
 
 #include "Poco/File.h"
 #include "Poco/Path.h"
+#include "Poco/URI.h"
 
 #include "Poco/RecursiveDirectoryIterator.h"
 #include "Poco/DirectoryWatcher.h"
@@ -50,31 +58,35 @@
 #include "Poco/Notification.h"
 #include "Poco/NotificationQueue.h"
 
-#define APPNAME "srcsync"
+#include <rsync/rsync_socketutil.h>
+#include <libssh2.h>
 
+#include "config.h"
 
-#define CONFIG_HELP     APPNAME ".help"     // --help
-#define CONFIG_SRC      APPNAME ".src"      // --src
-#define CONFIG_DEST     APPNAME ".dest"     // --dest
-#define CONFIG_VERBOSE  APPNAME ".verbose"  // --verbose
-
+#include "Queue.h"
 #include "MonitorDirectory.h"
 
 #include "SourceSync.h"
 
+SourceSync *thisApp = NULL;
+
 SourceSync::SourceSync() 
 {
+    FUNCTIONTRACE;
+
+    thisApp = this;
 
     setUnixOptions( true );
-    setLogger( Poco::Logger::get(APPNAME) );
+    setLogger( Poco::Logger::get("SourceSync") );
 
     logger().setLevel("", Poco::Message::PRIO_NOTICE );
 
-    queue_ = new Poco::NotificationQueue();
 };
 
 void SourceSync::initialize( Poco::Util::Application &self ) 
 {
+
+    FUNCTIONTRACE;
 
     Poco::Path appPath( config().getString("application.dir") + Poco::Path::separator() + config().getString("application.baseName") );
 
@@ -95,11 +107,12 @@ void SourceSync::initialize( Poco::Util::Application &self )
 
         config().setString("logging.loggers.root.channel", "c1");
         config().setString("logging.formatters.f1.class", "PatternFormatter");
-        config().setString("logging.formatters.f1.pattern", "%H:%M:%S %s [%p] %t");
+        config().setString("logging.formatters.f1.pattern", "%H:%M:%S %I %s [%p] %t");
         config().setString("logging.channels.c1.class", "ConsoleChannel");
         config().setString("logging.channels.c1.formatter", "f1");
 
     }
+
 
     // call each subsystem's initialize()
     // since Logging is a subsystem this is where we start to get fancy logging.
@@ -121,6 +134,7 @@ void SourceSync::initialize( Poco::Util::Application &self )
 
 void SourceSync::displayHelp() 
 {
+    FUNCTIONTRACE;
 
     Poco::Util::HelpFormatter helpFormatter( options() );
 
@@ -134,6 +148,7 @@ void SourceSync::displayHelp()
 
 void SourceSync::defineOptions( Poco::Util::OptionSet &options ) 
 {
+    FUNCTIONTRACE;
 
     Poco::Util::Application::defineOptions( options );
 
@@ -165,16 +180,16 @@ void SourceSync::defineOptions( Poco::Util::OptionSet &options )
             .binding( CONFIG_SRC ) );
 
     options.addOption(
-            Poco::Util::Option( "dest", "d", "Miror to DIR ( destination )" )
+            Poco::Util::Option( "dest", "d", "Miror to URI ( destination )" )
             .required( false )
             .repeatable( false )
-            .argument( "DIR" )
+            .argument( "URI" )
             .binding( CONFIG_DEST ) );
     options.addOption(
-            Poco::Util::Option( "to", "", "To DIR ( destination )" )
+            Poco::Util::Option( "to", "", "To URI ( destination )" )
             .required( false )
             .repeatable( false )
-            .argument( "DIR" )
+            .argument( "URI" )
             .binding( CONFIG_DEST ) );
 
 
@@ -185,6 +200,7 @@ void SourceSync::defineOptions( Poco::Util::OptionSet &options )
 
 void SourceSync::handleVerbose(const std::string &name, const std::string &value)
 {
+    FUNCTIONTRACE;
 
     int v =
 #ifdef _DEBUG 
@@ -213,11 +229,11 @@ void SourceSync::handleVerbose(const std::string &name, const std::string &value
     logger().setLevel("", config().getInt( CONFIG_VERBOSE ));
 }
 
-
-
 int SourceSync::main( const std::vector<std::string> &args ) {
 
-    setLogger(Poco::Logger::get(APPNAME));
+    FUNCTIONTRACE;
+
+    setLogger(Poco::Logger::get("SourceSync"));
 
     if ( config().hasProperty( CONFIG_VERBOSE ) ) {
 
@@ -242,16 +258,33 @@ int SourceSync::main( const std::vector<std::string> &args ) {
 
         if ( config().getString( CONFIG_SRC, "").empty() ) {
 
-            throw Poco::Exception( "No source/from argument specified" );
+            throw Poco::Exception( "No source argument specified" );
         }
         if ( config().getString( CONFIG_DEST, "").empty() ) {
 
-            throw Poco::Exception( "No destination/to argument specified" );
+            throw Poco::Exception( "No destination argument specified" );
         }
 
         logger().notice( Poco::format( "Syncing from %s to %s", 
                     config().getString( CONFIG_SRC ) ,
-                    config().getString( CONFIG_DEST )  ) );
+                    config().getString( CONFIG_DEST, "" )  ) );
+
+        rsync::SocketUtil::startup();
+
+        // initiate libssh2
+        //
+        int rc = libssh2_init(0);
+        if (rc != 0) {
+            throw Poco::Exception( "Failed to initiate libssh2");
+        }
+
+
+        // create the Queue for managing workers
+        queue_ = new Queue;
+
+        logger().notice("Processing initial synchronization");
+
+        MonitorDirectory *d = new MonitorDirectory( config().getString( CONFIG_SRC )  ); 
 
         // create a directory iterator for the source directory 
         // and spin up a MonitorDirectory instance for each one
@@ -269,6 +302,14 @@ int SourceSync::main( const std::vector<std::string> &args ) {
             ++dirIt;
         }
 
+        // get enough queued so that queue size isn't zero before checking...
+        Poco::Thread::sleep(5000);
+        while ( queue()->size() != 0 ) {
+
+            Poco::Thread::sleep(15000);
+        }
+
+        logger().notice("Initial synchronization complete");
 
         waitForTerminationRequest();
 
@@ -278,6 +319,8 @@ int SourceSync::main( const std::vector<std::string> &args ) {
     catch ( Poco::Exception &ex ) {
 
         logger().error( "D47E5398-1BAE-4C8B-B3FF-18A298858D78 : " + ex.displayText() );
+
+        Poco::NDC::current().dump(std::cerr);
 
         return Poco::Util::Application::EXIT_USAGE;
     }

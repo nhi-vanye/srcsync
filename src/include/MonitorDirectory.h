@@ -12,6 +12,7 @@ class MonitorDirectory
         MonitorDirectory( const std::string &path);
 
     private:
+#ifdef USE_POCO_DIRECTORY_WATCHER
         void onItemAdded(const Poco::DirectoryWatcher::DirectoryEvent& ev);
 
         void onItemRemoved(const Poco::DirectoryWatcher::DirectoryEvent& ev);
@@ -23,6 +24,7 @@ class MonitorDirectory
         void onItemMovedTo(const Poco::DirectoryWatcher::DirectoryEvent& ev);
 
         Poco::SharedPtr<Poco::DirectoryWatcher> watcher_;
+#endif // USE_POCO_DIRECTORY_WATCHER
 
         Poco::Logger &logger_;
 };

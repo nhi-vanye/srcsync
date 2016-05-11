@@ -10,9 +10,12 @@ INCLUDE_DIRECTORIES(
     ${psync_BINARY_DIR}/usr/local/include
     ${psync_BINARY_DIR}/usr/local/include/libssh
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+    /usr/local/opt/gettext/include
 )
 
 LINK_DIRECTORIES( 
+    /opt/local/lib/
+    /usr/local/opt/gettext/lib
     ${OPENSSL_LIB_DIR}
     ${psync_BINARY_DIR}/usr/local/lib
 )
@@ -25,6 +28,16 @@ ExternalProject_Add(
 
 #    CONFIGURE_COMMAND ./configure --no-samples --no-tests
     CMAKE_ARGS -Wno-dev 
+    INSTALL_COMMAND make install DESTDIR=${PROJECT_BINARY_DIR}
+)
+
+ExternalProject_Add(
+    "fswatch"
+
+    URL "https://github.com/emcrisostomo/fswatch/releases/download/1.9.2/fswatch-1.9.2.tar.gz"
+
+    CONFIGURE_COMMAND ../fswatch/configure 
+
     INSTALL_COMMAND make install DESTDIR=${PROJECT_BINARY_DIR}
 )
 
@@ -53,7 +66,13 @@ ExternalProject_Add(
     INSTALL_COMMAND make install DESTDIR=${PROJECT_BINARY_DIR}
 )
 
-ADD_EXECUTABLE( srcsync src/SourceSync.cc src/MonitorDirectory.cc )
+ADD_EXECUTABLE( srcsync 
+
+    src/SourceSync.cc 
+    src/MonitorDirectory.cc 
+    src/Queue.cc 
+    src/FileSyncWorker.cc 
+)
 
 TARGET_LINK_LIBRARIES( srcsync
 
@@ -64,11 +83,14 @@ TARGET_LINK_LIBRARIES( srcsync
     acrosync
 
     ssh2
+
+    crypto iconv z
 )
 
 ADD_DEPENDENCIES( srcsync
 
     poco
     libssh2
+    fswatch
     acrosync-library
 )
