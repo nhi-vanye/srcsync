@@ -20,7 +20,18 @@
 
 // Queue management
 //
-#define CONFIG_QUEUE_WORKER_COUNT APPNAME ".queue.worker.count"
-#define CONFIG_QUEUE_MIN_THREADS APPNAME ".queue.thread-min"
-#define CONFIG_QUEUE_MAX_THREADS APPNAME ".queue.thread-max"
-#define CONFIG_QUEUE_THREAD_IDLE APPNAME ".queue.thread-idle"
+#define CONFIG_QUEUE_WORKER_COUNT   APPNAME ".queue.worker.count"
+#define CONFIG_QUEUE_MIN_THREADS    APPNAME ".queue.thread-min"
+#define CONFIG_QUEUE_MAX_THREADS    APPNAME ".queue.thread-max"
+#define CONFIG_QUEUE_THREAD_IDLE    APPNAME ".queue.thread-idle"
+
+// rsync library
+#define CONFIG_RSYNC_LOG_LEVEL      APPNAME ".rsync.log.level"
+#define CONFIG_RSYNC_SSH_KEYFILE    APPNAME ".rsync.ssh.keyfile"
+#define CONFIG_RSYNC_SSH_METHOD     APPNAME ".rsync.ssh.method"
+
+#define RSYNC_SSH_METHOD_USER "user" 
+#define RSYNC_SSH_METHOD_PUBLICKEY "pubkey" 
+
+// libfswatch
+

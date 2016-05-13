@@ -1,5 +1,6 @@
 
 #include "Poco/PriorityNotificationQueue.h"
+#include "Poco/ThreadPool.h"
 #include "Poco/Thread.h"
 #include "Poco/URI.h"
 

@@ -21,7 +21,7 @@ LINK_DIRECTORIES(
 )
 
 ExternalProject_Add(
-    "poco"
+    "poco-git"
 
     GIT_REPOSITORY "https://github.com/pocoproject/poco.git"
     GIT_TAG "poco-1.7.3-release"
@@ -32,18 +32,19 @@ ExternalProject_Add(
 )
 
 ExternalProject_Add(
-    "fswatch"
+    "fswatch-src"
 
+# can't use git because of issues on MacOS getting autotools to build config.h required by CMake
     URL "https://github.com/emcrisostomo/fswatch/releases/download/1.9.2/fswatch-1.9.2.tar.gz"
 
-    CONFIGURE_COMMAND ../fswatch/configure 
+    CONFIGURE_COMMAND ../fswatch-src/configure 
 
     INSTALL_COMMAND make install DESTDIR=${PROJECT_BINARY_DIR}
 )
 
 
 ExternalProject_Add(
-    "libssh2"
+    "libssh2-git"
 
     GIT_REPOSITORY "https://github.com/libssh2/libssh2.git"
     GIT_TAG "libssh2-1.7.0"
@@ -55,7 +56,7 @@ ExternalProject_Add(
 
 
 ExternalProject_Add(
-    "acrosync-library"
+    "acrosync-git"
 
     GIT_REPOSITORY "https://github.com/gilbertchen/acrosync-library.git"
 
@@ -69,16 +70,28 @@ ExternalProject_Add(
 ADD_EXECUTABLE( srcsync 
 
     src/SourceSync.cc 
-    src/MonitorDirectory.cc 
+    src/FSWatchMonitorDirectory.cc 
     src/Queue.cc 
     src/FileSyncWorker.cc 
 )
+
+# use libfswatch (GPL) or Poco::DirectoryWatcher ?
+# Poco has scalability issues on Mac OS.
+SET_TARGET_PROPERTIES( srcsync 
+    PROPERTIES COMPILE_DEFINITIONS "USE_LIB_FSWATCH;HAVE_CXX_ATOMIC;HAVE_CXX_MUTEX;HAVE_CORESERVICES_CORESERVICES_H;HAVE_CSTDLIB;HAVE_CXX11;HAVE_FSEVENTS_FILE_EVENTS" 
+)
+SET_TARGET_PROPERTIES( srcsync 
+    PROPERTIES COMPILE_FLAGS "-std=gnu++11"
+)
+
 
 TARGET_LINK_LIBRARIES( srcsync
 
     PocoNet
     PocoUtil
     PocoFoundation
+
+    fswatch
 
     acrosync
 
@@ -89,8 +102,8 @@ TARGET_LINK_LIBRARIES( srcsync
 
 ADD_DEPENDENCIES( srcsync
 
-    poco
-    libssh2
-    fswatch
-    acrosync-library
+    poco-git
+    libssh2-git
+    fswatch-src
+    acrosync-git
 )

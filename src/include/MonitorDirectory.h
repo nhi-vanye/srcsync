@@ -1,7 +1,7 @@
 /**
  * \file MonitorDirectory.h
  *
- * \brief - Monitors a Directory and sends events
+ * \brief - Base class for directory monitor implementations
  *
  */
 
@@ -9,22 +9,9 @@ class MonitorDirectory
 {
     public:
 
-        MonitorDirectory( const std::string &path);
+        MonitorDirectory( const std::string &path, const std::string &loggerName = "MonitorDirectory") : logger_(Poco::Logger::get( loggerName )) {};
 
-    private:
-#ifdef USE_POCO_DIRECTORY_WATCHER
-        void onItemAdded(const Poco::DirectoryWatcher::DirectoryEvent& ev);
-
-        void onItemRemoved(const Poco::DirectoryWatcher::DirectoryEvent& ev);
-
-        void onItemModified(const Poco::DirectoryWatcher::DirectoryEvent& ev);
-
-        void onItemMovedFrom(const Poco::DirectoryWatcher::DirectoryEvent& ev);
-
-        void onItemMovedTo(const Poco::DirectoryWatcher::DirectoryEvent& ev);
-
-        Poco::SharedPtr<Poco::DirectoryWatcher> watcher_;
-#endif // USE_POCO_DIRECTORY_WATCHER
+    protected:
 
         Poco::Logger &logger_;
 };

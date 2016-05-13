@@ -15,7 +15,7 @@
 
 #include "config.h"
 
-Queue::Queue() : logger_(Poco::Logger::get("Queue")) 
+Queue::Queue() : logger_(Poco::Logger::get("QueueMangr")) 
 {
 
     FUNCTIONTRACE;
@@ -44,7 +44,10 @@ Queue::Queue() : logger_(Poco::Logger::get("Queue"))
     // this down to the workers :-(
     rsync::Log::out.connect(this, &Queue::logCallback);
 
-    //rsync::Log::setLevel( rsync::Log::Debug );
+
+    int rsyncLogLevel = Poco::Util::Application::instance().config().getInt( CONFIG_RSYNC_LOG_LEVEL, 4);
+
+    rsync::Log::setLevel( (rsync::Log::Level) rsyncLogLevel );
 }
 
 void Queue::logCallback(const char *id, int level, const char *message)
@@ -79,6 +82,8 @@ void Queue::logCallback(const char *id, int level, const char *message)
     else {
 
         logger_.fatal(  std::string(id) + " " + message );
+
+        throw Poco::Exception("Fatal Error during synchronization - does target directory exist ?");
     }
 
 }

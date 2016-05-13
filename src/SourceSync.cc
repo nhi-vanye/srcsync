@@ -64,7 +64,7 @@
 #include "config.h"
 
 #include "Queue.h"
-#include "MonitorDirectory.h"
+#include "FSWatchMonitorDirectory.h"
 
 #include "SourceSync.h"
 
@@ -284,8 +284,9 @@ int SourceSync::main( const std::vector<std::string> &args ) {
 
         logger().notice("Processing initial synchronization");
 
-        MonitorDirectory *d = new MonitorDirectory( config().getString( CONFIG_SRC )  ); 
+        FSWatchMonitorDirectory *d = new FSWatchMonitorDirectory( config().getString( CONFIG_SRC )  ); 
 
+        /*
         // create a directory iterator for the source directory 
         // and spin up a MonitorDirectory instance for each one
         Poco::SimpleRecursiveDirectoryIterator dirIt( config().getString( CONFIG_SRC ) );
@@ -301,10 +302,10 @@ int SourceSync::main( const std::vector<std::string> &args ) {
 
             ++dirIt;
         }
-
+*/
         // get enough queued so that queue size isn't zero before checking...
         Poco::Thread::sleep(5000);
-        while ( queue()->size() != 0 ) {
+        while ( jobCount_.value() != 0 ) {
 
             Poco::Thread::sleep(15000);
         }

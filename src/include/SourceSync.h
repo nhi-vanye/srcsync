@@ -3,6 +3,7 @@
 #include "Poco/Util/ServerApplication.h"
 #include "Poco/PriorityNotificationQueue.h"
 #include "Poco/NestedDiagnosticContext.h"
+#include "Poco/AtomicCounter.h"
 
 #include "Queue.h"
 
@@ -25,6 +26,10 @@ class SourceSync : public Poco::Util::ServerApplication
 
         Poco::PriorityNotificationQueue *queue() { return queue_->queue(); };
 
+        void jobStart() { jobCount_++; };
+        void jobEnd() { jobCount_--; };
+        int jobCount() { return jobCount_.value(); };
+
     protected:
 
         void displayHelp();
@@ -41,6 +46,7 @@ class SourceSync : public Poco::Util::ServerApplication
 
         Queue *queue_;
 
+        Poco::AtomicCounter jobCount_;
 };
 
 extern SourceSync *thisApp;

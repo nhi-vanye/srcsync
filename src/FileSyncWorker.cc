@@ -42,31 +42,40 @@ SyncWorker::SyncWorker ( const std::string &name, Poco::PriorityNotificationQueu
 void SyncWorker::initialize()
 {
 
-    std::string auth = remote_->getUserInfo();
+    const char * userC = NULL;
+    const char * passC = NULL;
+    const char * keyC = NULL;
 
-    Poco::StringTokenizer tok( auth, ":", Poco::StringTokenizer::TOK_TRIM );
+    if ( Poco::Util::Application::instance().config().getString( CONFIG_RSYNC_SSH_METHOD, RSYNC_SSH_METHOD_USER ) == RSYNC_SSH_METHOD_USER ) {
 
-    if ( tok.count() != 2 ) {
-        throw Poco::Exception( "Missing or invalid credentials in " + Poco::Util::Application::instance().config().getString( CONFIG_DEST ) );
+        std::string auth = remote_->getUserInfo();
+
+        Poco::StringTokenizer tok( auth, ":", Poco::StringTokenizer::TOK_TRIM );
+
+        if ( tok.count() != 2 ) {
+            throw Poco::Exception( "Missing or invalid credentials in " + Poco::Util::Application::instance().config().getString( CONFIG_DEST ) );
+        }
+
+        std::string user = tok[ 0 ];
+        std::string pass = tok[ 1 ];
+
+        userC = user.c_str();
+        passC = pass.c_str();
     }
+    else {
 
-    std::string user = tok[ 0 ];
-    std::string pass = tok[ 1 ];
-    
+        std::string key = Poco::Util::Application::instance().config().getString(CONFIG_RSYNC_SSH_KEYFILE);
+
+        keyC = key.c_str();
+    }
 
     sshio_.connect(
             remote_->getHost().c_str(), 
             remote_->getPort(), 
-            user.c_str(), 
-            pass.c_str(),
-            NULL, 
+            userC, 
+            passC,
+            keyC, 
             NULL);
-
-
-
-    // list the remote directory (not recursive)
-    // client_->list( remotePath.c_str() );
-
 }
 
 
@@ -75,68 +84,96 @@ void SyncWorker::run()
 {
     FUNCTIONTRACE;
 
-    Poco::Notification::Ptr n( queue_->waitDequeueNotification() );
+    Poco::AutoPtr<Poco::Notification> n( queue_->waitDequeueNotification() );
+
+    logger_.information( Poco::format("%s: dequeued", name_ ) );
 
     int zero = 0;
 
-    //client.entryOut.connect(thisApp->queue(), &Queue::outputCallback);
-    //client.statusOut.connect(thisApp->queue(), &Queue::statusCallback);
-
     while ( n ) {
 
-        Poco::AutoPtr<SyncMessage> req = dynamic_cast<SyncMessage *>( n.get() );
+        SyncMessage *req = dynamic_cast<SyncMessage *>( n.get() );
 
-        if ( sshio_.isConnected() == false ) {
+        if ( req ) {
 
-            initialize();
+            thisApp->jobStart();
+
+            if ( sshio_.isConnected() == false ) {
+
+                initialize();
+            }
+
+            logger_.debug( Poco::format("%s: Received message '%s' for %s", name_, req->type(), req->path()) );
+
+            // \TODO
+            // filter out un-interesting file changes, i.e. editor backups etc.
+
+            rsync::Client client(&sshio_, "rsync", 32, &zero);
+
+            if ( req && req->type() == MSG_FILE_SYNC ) { 
+
+                FileSyncMessage *msg = dynamic_cast<FileSyncMessage *>( n.get() );
+
+                if ( msg ) {
+
+                    std::string localPath = msg->path();
+                    std::string remotePath = remote_->getPath();
+
+                    if ( remotePath.back() != '/' ) {
+                        remotePath += Poco::Path::separator();
+                    }
+
+                    remotePath += msg->path();
+
+                    logger_.debug( Poco::format("%s: syncing file %s to %s", name_, localPath, remotePath ) );
+                    std::set<std::string> files;
+
+                    files.insert( localPath );
+
+                    client.upload( localPath.c_str(), remotePath.c_str(), &files );
+
+                    logger_.notice( Poco::format("Updated %s", localPath) );
+                    logger_.debug( Poco::format("%s: updated %s", name_, localPath) );
+                }
+
+            }
+            else if ( req->type() == MSG_DIR_SYNC ) { 
+
+                DirSyncMessage *msg = dynamic_cast<DirSyncMessage *>( n.get() );
+
+                if ( msg ) {
+
+                    std::string localPath = msg->path();
+                    std::string remotePath = remote_->getPath();
+
+                    if ( remotePath.back() != '/' ) {
+                        remotePath += Poco::Path::separator();
+                    }
+
+                    remotePath += msg->path();
+                    logger_.debug( Poco::format("%s: syncing dir %s to %s", name_, localPath, remotePath ) );
+
+                    client.upload( localPath.c_str(), remotePath.c_str() );
+
+                    logger_.notice( Poco::format("Updated %s", localPath) );
+                    logger_.debug( Poco::format("%s: updated %s", name_, localPath) );
+                }
+
+            }
+            else {
+
+                logger_.error("Unknown notification message type '" + req->type() + "'");
+
+            }
+
+            thisApp->jobEnd();
+
+            logger_.information( Poco::format("%s: %d task(s) remain to processed", name_, thisApp->jobCount() ) );
         }
-/*
-        rsync::Client client(&sshio_, "rsync", 32, &zero);
 
-        if ( req->type() == MSG_FILE_SYNC ) { 
-
-            Poco::AutoPtr<FileSyncMessage> msg = dynamic_cast<FileSyncMessage *>( n.get() );
-
-            std::string localPath = msg->path();
-            std::string remotePath = remote_->getPath() + Poco::Path::separator() + msg->path();
-
-            logger_.debug( Poco::format("%s: syncing file %s to %s", name_, localPath, remotePath ) );
-            std::set<std::string> files;
-
-            files.insert( localPath );
-
-            client.upload( localPath.c_str(), remotePath.c_str(), &files );
-
-            logger_.debug( Poco::format("%s: updated %s", name_, localPath) );
-
-        }
-        else if ( req->type() == MSG_DIR_SYNC ) { 
-
-            Poco::AutoPtr<DirSyncMessage> msg = dynamic_cast<DirSyncMessage *>( n.get() );
-
-            std::string localPath = msg->path();
-            std::string remotePath = remote_->getPath() + Poco::Path::separator() + msg->path();
-
-            logger_.debug( Poco::format("%s: syncing dir %s to %s", name_, localPath, remotePath ) );
-
-            client.upload( localPath.c_str(), remotePath.c_str() );
-
-            logger_.debug( Poco::format("%s: updated %s", name_, localPath) );
-
-        }
-        else {
-
-            logger_.error("Unknown notification message type '" + req->type() + "'");
-
-        }
-        client.stop();
-*/
-
-        Poco::Thread::sleep(100);
-
-        logger_.information( Poco::format("%d messages remain to processed", thisApp->queue()->size() ) );
 
         n = queue_->waitDequeueNotification();
+        logger_.information( Poco::format("%s: dequeued", name_ ) );
     }
 
 }
