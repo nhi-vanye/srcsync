@@ -72,7 +72,7 @@ ADD_EXECUTABLE( srcsync
     src/SourceSync.cc 
     src/FSWatchMonitorDirectory.cc 
     src/Queue.cc 
-    src/FileSyncWorker.cc 
+    src/SyncWorker.cc 
 )
 
 # use libfswatch (GPL) or Poco::DirectoryWatcher ?
