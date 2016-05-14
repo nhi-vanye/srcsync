@@ -76,6 +76,8 @@ ExternalProject_Add(
     CMAKE_ARGS -Wno-dev  -Dpsync_BINARY_DIR:STATIC=${PROJECT_BINARY_DIR}
 
     INSTALL_COMMAND make install DESTDIR=${PROJECT_BINARY_DIR}
+
+    DEPENDS "libssh2-git"
 )
 
 ADD_EXECUTABLE( srcsync 
@@ -158,3 +160,4 @@ SET( CPACK_BUNDLE_NAME srcsync )
 SET(CPACK_PACKAGE_EXECUTABLES "srcsync" "srcsync")
 
 INCLUDE(CPack)
+

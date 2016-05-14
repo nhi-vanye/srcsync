@@ -6,14 +6,14 @@
 #include "Poco/Logger.h"
 #include "Poco/StringTokenizer.h"
 
-#include <rsync_client.h>
+#include <rsync/rsync_client.h>
 
-#include <rsync_entry.h>
-#include <rsync_file.h>
-#include <rsync_log.h>
-#include <rsync_pathutil.h>
-#include <rsync_socketutil.h>
-#include <rsync_sshio.h>
+#include <rsync/rsync_entry.h>
+#include <rsync/rsync_file.h>
+#include <rsync/rsync_log.h>
+#include <rsync/rsync_pathutil.h>
+#include <rsync/rsync_socketutil.h>
+#include <rsync/rsync_sshio.h>
 
 #include <libssh2.h>
 

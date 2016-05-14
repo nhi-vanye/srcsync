@@ -7,7 +7,7 @@
 #include "Poco/Logger.h"
 
 
-#include <rsync_log.h>
+#include <rsync/rsync_log.h>
 
 #include "SourceSync.h"
 

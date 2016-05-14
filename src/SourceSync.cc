@@ -107,7 +107,7 @@ void SourceSync::initialize( Poco::Util::Application &self )
 
         config().setString("logging.loggers.root.channel", "c1");
         config().setString("logging.formatters.f1.class", "PatternFormatter");
-        config().setString("logging.formatters.f1.pattern", "%H:%M:%S [%p] %t");
+        config().setString("logging.formatters.f1.pattern", "%H:%M:%S [%q] %t");
         config().setString("logging.channels.c1.class", "ConsoleChannel");
         config().setString("logging.channels.c1.formatter", "f1");
 
