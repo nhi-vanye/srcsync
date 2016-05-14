@@ -22,7 +22,7 @@ Queue::Queue() : logger_(Poco::Logger::get("QueueMangr"))
 
     queue_ = new Poco::PriorityNotificationQueue;
 
-    for ( int i = 0; i < Poco::Util::Application::instance().config().getInt( CONFIG_QUEUE_WORKER_COUNT, 16 ); i++ ) {
+    for ( int i = 0; i < Poco::Util::Application::instance().config().getInt( CONFIG_QUEUE_WORKER_COUNT, 8 ); i++ ) {
 
         workers_.push_back( new SyncWorker( Poco::format("worker-%d", i ) , queue_ ) );   
     }
@@ -45,7 +45,7 @@ Queue::Queue() : logger_(Poco::Logger::get("QueueMangr"))
     rsync::Log::out.connect(this, &Queue::logCallback);
 
 
-    int rsyncLogLevel = Poco::Util::Application::instance().config().getInt( CONFIG_RSYNC_LOG_LEVEL, 4);
+    int rsyncLogLevel = Poco::Util::Application::instance().config().getInt( CONFIG_RSYNC_LOG_LEVEL, 3);
 
     rsync::Log::setLevel( (rsync::Log::Level) rsyncLogLevel );
 }

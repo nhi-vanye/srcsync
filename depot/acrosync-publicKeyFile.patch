@@ -1,0 +1,16 @@
+diff -up ./rsync/rsync_sshio.cpp.pre-rmo ./rsync/rsync_sshio.cpp
+--- ./rsync/rsync_sshio.cpp.pre-rmo	2016-05-12 11:29:54.000000000 -0700
++++ ./rsync/rsync_sshio.cpp	2016-05-13 17:05:41.000000000 -0700
+@@ -192,7 +192,11 @@ void SSHIO::connect(const char *serverLi
+             return;
+         }
+ 
+-        rc = libssh2_userauth_publickey_fromfile(d_session, user, NULL, keyFile, password);
++        std::string publicKeyFile(keyFile);
++
++        publicKeyFile += ".pub";
++
++        rc = libssh2_userauth_publickey_fromfile(d_session, user, publicKeyFile.c_str(), keyFile, password);
+ 
+         if (rc != 0) {
+             LOG_FATAL(SSH_AUTH) << "Authentication by public key failed: " << getLastError() << LOG_END

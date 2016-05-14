@@ -46,27 +46,39 @@ void SyncWorker::initialize()
     const char * passC = NULL;
     const char * keyC = NULL;
 
-    if ( Poco::Util::Application::instance().config().getString( CONFIG_RSYNC_SSH_METHOD, RSYNC_SSH_METHOD_USER ) == RSYNC_SSH_METHOD_USER ) {
+    std::string auth = remote_->getUserInfo();
 
-        std::string auth = remote_->getUserInfo();
+    Poco::StringTokenizer tok( auth, ":", Poco::StringTokenizer::TOK_TRIM );
 
-        Poco::StringTokenizer tok( auth, ":", Poco::StringTokenizer::TOK_TRIM );
+    std::string user = tok[ 0 ];
 
-        if ( tok.count() != 2 ) {
-            throw Poco::Exception( "Missing or invalid credentials in " + Poco::Util::Application::instance().config().getString( CONFIG_DEST ) );
-        }
+    userC = user.c_str();
 
-        std::string user = tok[ 0 ];
-        std::string pass = tok[ 1 ];
+    std::string key = Poco::Util::Application::instance().config().getString(CONFIG_RSYNC_SSH_KEYFILE, "");
 
-        userC = user.c_str();
+    std::string pass;
+
+    if ( tok.count() == 2  ) {
+
+        pass = tok[ 1 ];
+
         passC = pass.c_str();
+    }
+    else if ( key.empty() == false ) {
+
+        keyC = key.c_str();
+
     }
     else {
 
-        std::string key = Poco::Util::Application::instance().config().getString(CONFIG_RSYNC_SSH_KEYFILE);
+        throw Poco::Exception( "Missing or invalid credentials for " + Poco::Util::Application::instance().config().getString( CONFIG_DEST ) );
+    }
 
-        keyC = key.c_str();
+    if ( keyC ) {
+        logger_.debug( Poco::format("%s: connecting as %s to %s using keyfile %s %s", name_, user, remote_->getHost(), key , pass) );
+    }
+    else {
+        logger_.debug( Poco::format("%s: connecting as %s to %s using password %s", name_, user, remote_->getHost(), pass ) );
     }
 
     sshio_.connect(
@@ -108,7 +120,9 @@ void SyncWorker::run()
             // \TODO
             // filter out un-interesting file changes, i.e. editor backups etc.
 
-            rsync::Client client(&sshio_, "rsync", 32, &zero);
+            int protocol = Poco::Util::Application::instance().config().getInt( CONFIG_RSYNC_PROTOCOL_VERSION, 32 );
+
+            rsync::Client client(&sshio_, "rsync", protocol, &zero);
 
             if ( req && req->type() == MSG_FILE_SYNC ) { 
 

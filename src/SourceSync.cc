@@ -107,7 +107,7 @@ void SourceSync::initialize( Poco::Util::Application &self )
 
         config().setString("logging.loggers.root.channel", "c1");
         config().setString("logging.formatters.f1.class", "PatternFormatter");
-        config().setString("logging.formatters.f1.pattern", "%H:%M:%S %I %s [%p] %t");
+        config().setString("logging.formatters.f1.pattern", "%H:%M:%S [%p] %t");
         config().setString("logging.channels.c1.class", "ConsoleChannel");
         config().setString("logging.channels.c1.formatter", "f1");
 
@@ -165,6 +165,22 @@ void SourceSync::defineOptions( Poco::Util::OptionSet &options )
             .argument("LEVEL", true)
             .callback(Poco::Util::OptionCallback<SourceSync>(this, &SourceSync::handleVerbose)));
 
+    options.addOption(
+            Poco::Util::Option("rsync-verbose", "", "set verbosity of rsync messages")
+            .required(false)
+            .repeatable(false)
+            .argument("LEVEL", true)
+            .binding( CONFIG_RSYNC_LOG_LEVEL ) );
+
+
+    // a profile is really a config file that is specific for a remote host...
+    options.addOption(
+            Poco::Util::Option( "profile", "", "Load profile from FILE" )
+            .required( false )
+            .repeatable( false )
+            .argument( "FILE" )
+            .binding( CONFIG_PROFILE ) );
+
 
     options.addOption(
             Poco::Util::Option( "src", "s", "Mirror from DIR ( source )" )
@@ -191,6 +207,21 @@ void SourceSync::defineOptions( Poco::Util::OptionSet &options )
             .repeatable( false )
             .argument( "URI" )
             .binding( CONFIG_DEST ) );
+
+    options.addOption(
+            Poco::Util::Option( "private-key", "", "Use KEYFILE to authenticate SSH connection to remote host" )
+            .required( false )
+            .repeatable( false )
+            .argument( "KEYFILE" )
+            .binding( CONFIG_RSYNC_SSH_KEYFILE ) );
+
+    options.addOption(
+            Poco::Util::Option( "rsync-protocol-version", "", "Use version VER of rsync to remote host" )
+            .required( false )
+            .repeatable( false )
+            .argument( "VER" )
+            .binding( CONFIG_RSYNC_PROTOCOL_VERSION ) );
+
 
 
     config().setString( CONFIG_HELP, "-false-");

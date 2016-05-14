@@ -17,6 +17,7 @@
 #define CONFIG_SRC      APPNAME ".src"      // --src
 #define CONFIG_DEST     APPNAME ".dest"     // --dest
 #define CONFIG_VERBOSE  APPNAME ".verbose"  // --verbose
+#define CONFIG_PROFILE  APPNAME ".profile"  // --profile
 
 // Queue management
 //
@@ -26,12 +27,10 @@
 #define CONFIG_QUEUE_THREAD_IDLE    APPNAME ".queue.thread-idle"
 
 // rsync library
-#define CONFIG_RSYNC_LOG_LEVEL      APPNAME ".rsync.log.level"
-#define CONFIG_RSYNC_SSH_KEYFILE    APPNAME ".rsync.ssh.keyfile"
-#define CONFIG_RSYNC_SSH_METHOD     APPNAME ".rsync.ssh.method"
+#define CONFIG_RSYNC_LOG_LEVEL          APPNAME ".rsync.log.level"
+#define CONFIG_RSYNC_SSH_KEYFILE        APPNAME ".rsync.ssh.keyfile"
+#define CONFIG_RSYNC_PROTOCOL_VERSION   APPNAME ".rsync.protocol.version"
 
-#define RSYNC_SSH_METHOD_USER "user" 
-#define RSYNC_SSH_METHOD_PUBLICKEY "pubkey" 
 
 // libfswatch
 

@@ -14,10 +14,10 @@ INCLUDE_DIRECTORIES(
 )
 
 LINK_DIRECTORIES( 
+    ${psync_BINARY_DIR}/usr/local/lib
     /opt/local/lib/
     /usr/local/opt/gettext/lib
     ${OPENSSL_LIB_DIR}
-    ${psync_BINARY_DIR}/usr/local/lib
 )
 
 ExternalProject_Add(
@@ -26,8 +26,17 @@ ExternalProject_Add(
     GIT_REPOSITORY "https://github.com/pocoproject/poco.git"
     GIT_TAG "poco-1.7.3-release"
 
-#    CONFIGURE_COMMAND ./configure --no-samples --no-tests
-    CMAKE_ARGS -Wno-dev 
+    # disable lots of features, we only need foundation, util
+    CMAKE_ARGS  -Wno-dev 
+                -DENABLE_XML=OFF 
+                -DENABLE_JSON=OFF 
+                -DENABLE_MONGODB=OFF  
+                -DENABLE_PAGECOMPILER=OFF 
+                -DENABLE_PAGECOMPILER_FILE2PAGE=OFF 
+                -DENABLE_DATA=OFF 
+                -DENABLE_ZIP=OFF
+                -DENABLE_NETSSL=OFF
+
     INSTALL_COMMAND make install DESTDIR=${PROJECT_BINARY_DIR}
 )
 
@@ -62,6 +71,8 @@ ExternalProject_Add(
 
     UPDATE_COMMAND cp ${PROJECT_SOURCE_DIR}/depot/acrosync.cmake CMakeLists.txt
 
+    PATCH_COMMAND patch -p1 < ${PROJECT_SOURCE_DIR}/depot/acrosync-publicKeyFile.patch
+
     CMAKE_ARGS -Wno-dev  -Dpsync_BINARY_DIR:STATIC=${PROJECT_BINARY_DIR}
 
     INSTALL_COMMAND make install DESTDIR=${PROJECT_BINARY_DIR}
@@ -80,10 +91,14 @@ ADD_EXECUTABLE( srcsync
 SET_TARGET_PROPERTIES( srcsync 
     PROPERTIES COMPILE_DEFINITIONS "USE_LIB_FSWATCH;HAVE_CXX_ATOMIC;HAVE_CXX_MUTEX;HAVE_CORESERVICES_CORESERVICES_H;HAVE_CSTDLIB;HAVE_CXX11;HAVE_FSEVENTS_FILE_EVENTS" 
 )
+
 SET_TARGET_PROPERTIES( srcsync 
     PROPERTIES COMPILE_FLAGS "-std=gnu++11"
 )
 
+SET_TARGET_PROPERTIES( srcsync 
+    PROPERTIES INSTALL_RPATH "@loader_path/../lib"
+)
 
 TARGET_LINK_LIBRARIES( srcsync
 
@@ -107,3 +122,39 @@ ADD_DEPENDENCIES( srcsync
     fswatch-src
     acrosync-git
 )
+
+INSTALL( 
+    TARGETS srcsync
+
+    DESTINATION bin
+)
+
+INSTALL( FILES
+
+    ${psync_BINARY_DIR}/usr/local/lib/libPocoNet.43.dylib
+    ${psync_BINARY_DIR}/usr/local/lib/libPocoUtil.43.dylib
+    ${psync_BINARY_DIR}/usr/local/lib/libPocoFoundation.43.dylib
+    ${psync_BINARY_DIR}/usr/local/lib/libfswatch.6.dylib 
+    ${psync_BINARY_DIR}/usr/local/lib/libacrosync.dylib
+
+    DESTINATION lib
+)
+
+SET( CPACK_PACKAGE_NAME srcsync)
+
+
+SET(CPACK_GENERATOR "STGZ;TGZ;PackageMaker;Bundle")
+
+SET( CPACK_PACKAGE_DESCRIPTION_SUMMARY "SourceSync")
+SET( CPACK_PACKAGE_VENDOR "Richard Offer")
+SET( CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+SET( CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.md")
+SET( CPACK_PACKAGE_VERSION "0.0.1" )
+SET( CPACK_PACKAGE_INSTALL_DIRECTORY "/usr/local/srcsync")
+SET( CPACK_INCLUDE_TOPLEVEL_DIRECTORY 1)
+
+SET( CPACK_BUNDLE_NAME srcsync )
+
+SET(CPACK_PACKAGE_EXECUTABLES "srcsync" "srcsync")
+
+INCLUDE(CPack)
