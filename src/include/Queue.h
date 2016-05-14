@@ -3,6 +3,7 @@
 #include "Poco/ThreadPool.h"
 #include "Poco/Thread.h"
 #include "Poco/URI.h"
+#include "Poco/Glob.h"
 
 #include <rsync/rsync_client.h>
 #include <rsync/rsync_sshio.h>
@@ -66,6 +67,8 @@ class SyncWorker : public Poco::Runnable
         Poco::Logger &logger_;
 
         rsync::SSHIO  sshio_;
+
+        std::vector<Poco::Glob *> ignore_;
 
 };
 

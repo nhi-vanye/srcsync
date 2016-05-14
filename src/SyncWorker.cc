@@ -5,6 +5,7 @@
 #include "Poco/Thread.h"
 #include "Poco/Logger.h"
 #include "Poco/StringTokenizer.h"
+#include "Poco/Glob.h"
 
 #include <rsync/rsync_client.h>
 
@@ -34,9 +35,21 @@ SyncWorker::SyncWorker ( const std::string &name, Poco::PriorityNotificationQueu
     remote_ = new Poco::URI( Poco::Util::Application::instance().config().getString( CONFIG_DEST ) );
 
 
+    std::string ignore = Poco::Util::Application::instance().config().getString( CONFIG_IGNORE, "" );
+
+    if ( ignore.empty() == false ) {
+
+        Poco::StringTokenizer tok( ignore, " ", Poco::StringTokenizer::TOK_TRIM );
+
+        for ( int i = 0; i < tok.count(); i++ ) {
+
+            ignore_.push_back( new Poco::Glob( tok[i] ) );
+        }
+
+    }
+
+
     initialize();
-
-
 }
 
 void SyncWorker::initialize()
@@ -131,23 +144,45 @@ void SyncWorker::run()
                 if ( msg ) {
 
                     std::string localPath = msg->path();
-                    std::string remotePath = remote_->getPath();
 
-                    if ( remotePath.back() != '/' ) {
-                        remotePath += Poco::Path::separator();
+                    bool ignoreThisFile = false;
+
+                    if ( ignore_.size() > 0 ) {
+
+                        for ( std::vector<Poco::Glob *>::iterator it = ignore_.begin(); it != ignore_.end() ; it++ ) {
+
+                            if ( (*it)->match( localPath ) ) {
+
+                                ignoreThisFile = true;
+
+                                break;
+                            }
+                        }
                     }
 
-                    remotePath += msg->path();
+                    if ( ignoreThisFile ) {
+                        logger_.information( Poco::format("Ignoring %s", localPath) );
+                    }
+                    else {
+                        std::string remotePath = remote_->getPath();
 
-                    logger_.debug( Poco::format("%s: syncing file %s to %s", name_, localPath, remotePath ) );
-                    std::set<std::string> files;
+                        if ( remotePath.back() != '/' ) {
+                            remotePath += Poco::Path::separator();
+                        }
 
-                    files.insert( localPath );
+                        remotePath += msg->path();
 
-                    client.upload( localPath.c_str(), remotePath.c_str(), &files );
+                        logger_.debug( Poco::format("%s: syncing file %s to %s", name_, localPath, remotePath ) );
+                        std::set<std::string> files;
 
-                    logger_.notice( Poco::format("Updated %s", localPath) );
-                    logger_.debug( Poco::format("%s: updated %s", name_, localPath) );
+                        files.insert( localPath );
+
+                        client.upload( localPath.c_str(), remotePath.c_str(), &files );
+
+                        logger_.notice( Poco::format("Updated %s", localPath) );
+                        logger_.debug( Poco::format("%s: updated %s", name_, localPath) );
+                    }
+
                 }
 
             }
@@ -158,19 +193,40 @@ void SyncWorker::run()
                 if ( msg ) {
 
                     std::string localPath = msg->path();
-                    std::string remotePath = remote_->getPath();
 
-                    if ( remotePath.back() != '/' ) {
-                        remotePath += Poco::Path::separator();
+                    bool ignoreThisFile = false;
+
+                    if ( ignore_.size() > 0 ) {
+
+                        for ( std::vector<Poco::Glob *>::iterator it = ignore_.begin(); it != ignore_.end() ; it++ ) {
+
+                            if ( (*it)->match( localPath ) ) {
+
+                                ignoreThisFile = true;
+
+                                break;
+                            }
+                        }
                     }
 
-                    remotePath += msg->path();
-                    logger_.debug( Poco::format("%s: syncing dir %s to %s", name_, localPath, remotePath ) );
+                    if ( ignoreThisFile ) {
+                        logger_.information( Poco::format("Ignoring %s", localPath) );
+                    }
+                    else {
+                        std::string remotePath = remote_->getPath();
 
-                    client.upload( localPath.c_str(), remotePath.c_str() );
+                        if ( remotePath.back() != '/' ) {
+                            remotePath += Poco::Path::separator();
+                        }
 
-                    logger_.notice( Poco::format("Updated %s", localPath) );
-                    logger_.debug( Poco::format("%s: updated %s", name_, localPath) );
+                        remotePath += msg->path();
+                        logger_.debug( Poco::format("%s: syncing dir %s to %s", name_, localPath, remotePath ) );
+
+                        client.upload( localPath.c_str(), remotePath.c_str() );
+
+                        logger_.notice( Poco::format("Updated %s", localPath) );
+                        logger_.debug( Poco::format("%s: updated %s", name_, localPath) );
+                    }
                 }
 
             }
@@ -187,7 +243,6 @@ void SyncWorker::run()
 
 
         n = queue_->waitDequeueNotification();
-        logger_.information( Poco::format("%s: dequeued", name_ ) );
     }
 
 }

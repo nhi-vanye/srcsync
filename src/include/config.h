@@ -18,6 +18,7 @@
 #define CONFIG_DEST     APPNAME ".dest"     // --dest
 #define CONFIG_VERBOSE  APPNAME ".verbose"  // --verbose
 #define CONFIG_PROFILE  APPNAME ".profile"  // --profile
+#define CONFIG_IGNORE   APPNAME ".ignore"   // --ignore
 
 // Queue management
 //

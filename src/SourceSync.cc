@@ -166,7 +166,7 @@ void SourceSync::defineOptions( Poco::Util::OptionSet &options )
             .callback(Poco::Util::OptionCallback<SourceSync>(this, &SourceSync::handleVerbose)));
 
     options.addOption(
-            Poco::Util::Option("rsync-verbose", "", "set verbosity of rsync messages")
+            Poco::Util::Option("rsync-log-level", "", "set verbosity of rsync messages")
             .required(false)
             .repeatable(false)
             .argument("LEVEL", true)
@@ -180,6 +180,13 @@ void SourceSync::defineOptions( Poco::Util::OptionSet &options )
             .repeatable( false )
             .argument( "FILE" )
             .binding( CONFIG_PROFILE ) );
+
+    options.addOption(
+            Poco::Util::Option( "ignore", "", "Space separated list of file globs to ignore" )
+            .required( false )
+            .repeatable( false )
+            .argument( "GLOBLIST" )
+            .binding( CONFIG_IGNORE ) );
 
 
     options.addOption(
