@@ -1,0 +1,45 @@
+
+variables:
+    VERSION_MAJOR : "0"
+    VERSION_MINOR : "0"
+    VERSION_PATCH : "1"
+
+stages:
+  - build
+  - deploy
+
+# builds on master always archive artifacts  
+release:darwin:
+  stage: build
+  only:
+    - master
+  tags:
+    - darwin
+  script:
+# export will display the environment - that will include any security variables
+# that have been set in gitlab console
+    - export
+    - git log -n 1
+    - ./configure.sh
+    - cd BUILD
+    - make
+    - make package
+    - ls -l
+  artifacts:
+    paths:
+      - BUILD/srcsync-*sh
+
+devel:darwin:
+  stage: build
+  tags:
+    - darwin
+  except:
+    - master
+  script:
+    - export
+    - git log -n 1
+    - ./configure.sh
+    - cd BUILD
+    - make
+    - make package
+    - ls -l
