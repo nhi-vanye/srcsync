@@ -5,14 +5,15 @@
  *
  */
 
+
 class MonitorDirectory
 {
     public:
 
         MonitorDirectory( const std::string &path, const std::string &loggerName = "MonitorDirectory") : logger_(Poco::Logger::get( loggerName )) {};
 
-    protected:
+   protected:
 
         Poco::Logger &logger_;
 };
-
+ 

@@ -38,110 +38,87 @@ LINK_DIRECTORIES(
     ${OPENSSL_LIB_DIR}
 )
 
-ExternalProject_Add(
-    "poco-git"
+SET( PATCH_PROGRAM patch )
+SET( USE_LIBFSWATCH_DEFAULT ON )
 
-    GIT_REPOSITORY "https://github.com/pocoproject/poco.git"
-    GIT_TAG "poco-1.7.3-release"
+IF ( CMAKE_SYSTEM MATCHES "Darwin" )
 
-    # disable lots of features, we only need foundation, util
-    CMAKE_ARGS  -Wno-dev 
-                -DENABLE_CRYPTO=OFF 
-                -DENABLE_XML=OFF 
-                -DENABLE_JSON=OFF 
-                -DENABLE_MONGODB=OFF  
-                -DENABLE_PAGECOMPILER=OFF 
-                -DENABLE_PAGECOMPILER_FILE2PAGE=OFF 
-                -DENABLE_DATA=OFF 
-                -DENABLE_ZIP=OFF
-                -DENABLE_NETSSL=OFF
 
-    INSTALL_COMMAND make install DESTDIR=${PROJECT_BINARY_DIR}
+ELSEIF ( CMAKE_SYSTEM MATCHES "Windows" )
+
+  SET( USE_LIBFSWATCH_DEFAULT OFF )
+  SET( PATCH_PROGRAM c:/cygwin/bin/patch.exe )
+
+ELSEIF ( CMAKE_SYSTEM MATCHES "Linux" )
+
+ENDIF ( CMAKE_SYSTEM MATCHES "Darwin" )
+
+
+# Poco's DirectoryWatcher is very bad on OS X - can't handle large number of files
+# so we need to use libfswatch
+# Downside is that fswatch is a pain to compile on Windows (needs cygwin and gcc)
+#
+OPTION( USE_LIBFSWATCH "Use libfswatch library" ${USE_LIBFSWATCH_DEFAULT} )
+
+SET ( SRCS src/SourceSync.cc src/Queue.cc src/SyncWorker.cc )
+
+SET ( LINK_LIBS  PocoNet PocoUtil PocoFoundation acrosync ssh2 crypto iconv z  )
+
+SET ( DEPENDENCIES  poco-git libssh2-git acrosync-git )
+
+SET ( INSTALL_LIBS 
+    ${srcsync_BINARY_DIR}/usr/local/lib/libPocoNet.43.dylib
+    ${srcsync_BINARY_DIR}/usr/local/lib/libPocoUtil.43.dylib
+    ${srcsync_BINARY_DIR}/usr/local/lib/libPocoFoundation.43.dylib
+    ${srcsync_BINARY_DIR}/usr/local/lib/libacrosync.dylib
 )
 
-ExternalProject_Add(
-    "fswatch-src"
-
-# can't use git because of issues on MacOS getting autotools to build config.h required by CMake
-    URL "https://github.com/emcrisostomo/fswatch/releases/download/1.9.2/fswatch-1.9.2.tar.gz"
-
-    CONFIGURE_COMMAND ../fswatch-src/configure 
-
-    INSTALL_COMMAND make install DESTDIR=${PROJECT_BINARY_DIR}
-)
+ 
 
 
-ExternalProject_Add(
-    "libssh2-git"
-
-    GIT_REPOSITORY "https://github.com/libssh2/libssh2.git"
-    GIT_TAG "libssh2-1.7.0"
-
-    CMAKE_ARGS -Wno-dev 
-
-    INSTALL_COMMAND make install DESTDIR=${PROJECT_BINARY_DIR}
-)
+if ( USE_LIBFSWATCH )
 
 
-ExternalProject_Add(
-    "acrosync-git"
+  LIST( APPEND LINK_LIBS fswatch )
 
-    GIT_REPOSITORY "https://github.com/gilbertchen/acrosync-library.git"
+  LIST( APPEND DEPENDENCIES fswatch-src )
 
-    PATCH_COMMAND patch -p1 < ${PROJECT_SOURCE_DIR}/depot/acrosync-cmake.patch
-        COMMAND patch -p1 < ${PROJECT_SOURCE_DIR}/depot/acrosync-publicKeyFile.patch
+  LIST( APPEND SRCS src/FSWatchMonitorDirectory.cc )
 
-    CMAKE_ARGS -Wno-dev  -Dsrcsync_BINARY_DIR:STATIC=${PROJECT_BINARY_DIR}
+  LIST( APPEND INSTALL_LIBS ${srcsync_BINARY_DIR}/usr/local/lib/libfswatch.6.dylib )
 
-    INSTALL_COMMAND make install DESTDIR=${PROJECT_BINARY_DIR}
+  SET( COMPILE_DEFINITIONS "USE_LIB_FSWATCH;HAVE_CXX_ATOMIC;HAVE_CXX_MUTEX;HAVE_CORESERVICES_CORESERVICES_H;HAVE_CSTDLIB;HAVE_CXX11;HAVE_FSEVENTS_FILE_EVENTS" )
 
-    DEPENDS "libssh2-git"
-)
 
-ADD_EXECUTABLE( srcsync 
+ELSE ( USE_LIBFSWATCH )
 
-    src/SourceSync.cc 
-    src/FSWatchMonitorDirectory.cc 
-    src/Queue.cc 
-    src/SyncWorker.cc 
-)
+  SET( COMPILE_DEFINITIONS "USE_POCO_DIRECTORY_WATCHER" )
 
-# use libfswatch (GPL) or Poco::DirectoryWatcher ?
-# Poco has scalability issues on Mac OS.
-SET_TARGET_PROPERTIES( srcsync 
-    PROPERTIES COMPILE_DEFINITIONS "USE_LIB_FSWATCH;HAVE_CXX_ATOMIC;HAVE_CXX_MUTEX;HAVE_CORESERVICES_CORESERVICES_H;HAVE_CSTDLIB;HAVE_CXX11;HAVE_FSEVENTS_FILE_EVENTS" 
-)
+  LIST( APPEND SRCS src/PocoMonitorDirectory.cc )
 
-SET_TARGET_PROPERTIES( srcsync 
-    PROPERTIES COMPILE_FLAGS "-std=gnu++11"
-)
+ENDif ( USE_LIBFSWATCH )
 
-SET_TARGET_PROPERTIES( srcsync 
-    PROPERTIES INSTALL_RPATH "@loader_path/../lib"
-)
 
-TARGET_LINK_LIBRARIES( srcsync
+ADD_EXECUTABLE( srcsync ${SRCS} )
 
-    PocoNet
-    PocoUtil
-    PocoFoundation
+SET_TARGET_PROPERTIES( srcsync PROPERTIES COMPILE_DEFINITIONS ${COMPILE_DEFINITIONS} )
 
-    fswatch
 
-    acrosync
+IF ( CMAKE_SYSTEM MATCHES "Darwin" )
 
-    ssh2
+  SET_TARGET_PROPERTIES( srcsync PROPERTIES INSTALL_RPATH "@loader_path/../lib" )
 
-    crypto iconv z
-)
+  IF ( USE_LIBFSWATCH )
+    SET_TARGET_PROPERTIES( srcsync PROPERTIES COMPILE_FLAGS "-std=gnu++11")
+  ENDif ( USE_LIBFSWATCH )
 
-ADD_DEPENDENCIES( srcsync
+ENDIF ( CMAKE_SYSTEM MATCHES "Darwin" )
 
-    poco-git
-    libssh2-git
-    fswatch-src
-    acrosync-git
-)
+TARGET_LINK_LIBRARIES( srcsync ${LINK_LIBS} )
+
+
+ADD_DEPENDENCIES( srcsync ${DEPENDENCIES} )
+
 
 INSTALL( 
     TARGETS srcsync
@@ -149,16 +126,17 @@ INSTALL(
     DESTINATION bin
 )
 
-INSTALL( FILES
-
-    ${srcsync_BINARY_DIR}/usr/local/lib/libPocoNet.43.dylib
-    ${srcsync_BINARY_DIR}/usr/local/lib/libPocoUtil.43.dylib
-    ${srcsync_BINARY_DIR}/usr/local/lib/libPocoFoundation.43.dylib
-    ${srcsync_BINARY_DIR}/usr/local/lib/libfswatch.6.dylib 
-    ${srcsync_BINARY_DIR}/usr/local/lib/libacrosync.dylib
+INSTALL( 
+    FILES ${INSTALL_LIBS}
 
     DESTINATION lib
 )
+
+###############################################################################
+#
+# Packaging
+#
+#
 
 SET( CPACK_PACKAGE_NAME srcsync)
 
@@ -183,4 +161,74 @@ SET( CPACK_BUNDLE_NAME srcsync )
 SET(CPACK_PACKAGE_EXECUTABLES "srcsync" "srcsync")
 
 INCLUDE(CPack)
+
+###############################################################################
+#
+# External Components
+#
+#
+
+ExternalProject_Add(
+    "poco-git"
+
+    GIT_REPOSITORY "https://github.com/pocoproject/poco.git"
+    GIT_TAG "poco-1.7.3-release"
+
+    # disable lots of features, we only need foundation, util
+    CMAKE_ARGS  -Wno-dev 
+                -DENABLE_CRYPTO=OFF 
+                -DENABLE_XML=OFF 
+                -DENABLE_JSON=OFF 
+                -DENABLE_MONGODB=OFF  
+                -DENABLE_PAGECOMPILER=OFF 
+                -DENABLE_PAGECOMPILER_FILE2PAGE=OFF 
+                -DENABLE_DATA=OFF 
+                -DENABLE_ZIP=OFF
+                -DENABLE_NETSSL=OFF
+
+    INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} install DESTDIR=${PROJECT_BINARY_DIR}
+)
+
+IF ( USE_LIBFSWATCH ) 
+  ExternalProject_Add(
+    "fswatch-src"
+
+  # can't use git because of issues on MacOS getting autotools to build config.h required by CMake
+    URL "https://github.com/emcrisostomo/fswatch/releases/download/1.9.2/fswatch-1.9.2.tar.gz"
+
+    CONFIGURE_COMMAND ../fswatch-src/configure 
+
+    INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} install DESTDIR=${PROJECT_BINARY_DIR}
+  )
+
+ENDIF ( USE_LIBFSWATCH ) 
+
+
+ExternalProject_Add(
+    "libssh2-git"
+
+    GIT_REPOSITORY "https://github.com/libssh2/libssh2.git"
+    GIT_TAG "libssh2-1.7.0"
+
+    CMAKE_ARGS -Wno-dev 
+
+    INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} install DESTDIR=${PROJECT_BINARY_DIR}
+)
+
+
+ExternalProject_Add(
+    "acrosync-git"
+
+    GIT_REPOSITORY "https://github.com/gilbertchen/acrosync-library.git"
+
+    PATCH_COMMAND ${PATCH_PROGRAM} -p1 < ${PROJECT_SOURCE_DIR}/depot/acrosync-cmake.patch
+        COMMAND ${PATCH_PROGRAM} -p1 < ${PROJECT_SOURCE_DIR}/depot/acrosync-publicKeyFile.patch
+
+    CMAKE_ARGS -Wno-dev  -Dsrcsync_BINARY_DIR:STATIC=${PROJECT_BINARY_DIR}
+
+    INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} install DESTDIR=${PROJECT_BINARY_DIR}
+
+    DEPENDS "libssh2-git"
+)
+
 
