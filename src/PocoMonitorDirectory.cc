@@ -1,7 +1,7 @@
 /**
- * \file MonitorDirectory.cc
+ * \file PocoMonitorDirectory.cc
  *
- * \brief - Monitors a Directory and sends events
+ * \brief - Monitors a Directory and sends events using Poco's DirectoryWatcher
  *
  */
 
@@ -32,22 +32,13 @@
 #include "Poco/Notification.h"
 #include "Poco/NotificationQueue.h"
 
-#ifdef USE_LIB_FSWATCH
-#include "libfswatch/c++/event.hpp"
-#include "libfswatch/c++/monitor.hpp"
-#endif
-
-#include "MonitorDirectory.h"
+#include "PocoMonitorDirectory.h"
 
 #include "Queue.h"
 
 #include "SourceSync.h"
 
-#ifdef USE_LIB_FSWATCH
-static fsw::FSW_EVENT_CALLBACK handleFSWatchEvents;
-#endif // USE_LIB_FSWATCH
-
-MonitorDirectory::MonitorDirectory( const std::string &path) : logger_(Poco::Logger::get("MonitorDirectory")) 
+PocoMonitorDirectory::PocoMonitorDirectory( const std::string &path) : logger_(Poco::Logger::get("MonitorDirectory")) 
 {
     FUNCTIONTRACE;
 
@@ -55,49 +46,17 @@ MonitorDirectory::MonitorDirectory( const std::string &path) : logger_(Poco::Log
 
     logger_.debug( "Monitoring " + path );
 
-    // you might think that Poco's DirectoryWatcher would be good here.
-    // The problem is that on on OS X * it uses kqueue() and that is limited by 
-    // open file descriptors (256).
-    // libfswatch is GPL - but allows for using Apple File Events
-    //
-    // * the primary use case is for me to edit on my MacBook and compile on
-    // docker so I need a good solution for OS X
-    //
-#ifdef USE_POCO_DIRECTORY_WATCHER
     watcher_ = new Poco::DirectoryWatcher( path );
 
-    watcher_->itemAdded += Poco::delegate(this, &MonitorDirectory::onItemAdded);
-    watcher_->itemRemoved += Poco::delegate(this, &MonitorDirectory::onItemRemoved);
-    watcher_->itemModified += Poco::delegate(this, &MonitorDirectory::onItemModified);
-    watcher_->itemMovedFrom += Poco::delegate(this, &MonitorDirectory::onItemMovedFrom);
-    watcher_->itemMovedTo += Poco::delegate(this, &MonitorDirectory::onItemMovedTo);
-#endif // USE_POCO_DIRECTORY_WATCHER
+    watcher_->itemAdded += Poco::delegate(this, &PocoMonitorDirectory::onItemAdded);
+    watcher_->itemRemoved += Poco::delegate(this, &PocoMonitorDirectory::onItemRemoved);
+    watcher_->itemModified += Poco::delegate(this, &PocoMonitorDirectory::onItemModified);
+    watcher_->itemMovedFrom += Poco::delegate(this, &PocoMonitorDirectory::onItemMovedFrom);
+    watcher_->itemMovedTo += Poco::delegate(this, &PocoMonitorDirectory::onItemMovedTo);
 
     std::vector<std::string> paths;
 
     paths.push_back( path );
-
-#ifdef USE_LIB_FSWATCH
-    fsw::monitor *fswmonitor = fsw::monitor_factory::create_monitor(fsw_monitor_type::system_default_monitor_type, // type - system specific default..
-            paths,
-            handleFSWatchEvents);
-
-    // active_monitor->set_properties(monitor_properties);
-    // active_monitor->set_allow_overflow(allow_overflow);
-    fswmonitor->set_latency( 30.0 ); // 5minutes
-    fswmonitor->set_fire_idle_event( true );
-    fswmonitor->set_recursive( false ); // maybe better as true with a single MonitorDirectory - but that would break using Poco...
-
-    // active_monitor->set_directory_only(dflag);
-    // active_monitor->set_event_type_filters(event_filters);
-    // active_monitor->set_filters(filters);
-    // active_monitor->set_follow_symlinks(Lflag);
-    // active_monitor->set_watch_access(aflag);
-
-    fswmonitor->start();
-
-#endif //  USE_LIB_FSWATCH
-
 
     // this triggers the initial synchronization of this directory
     // make sure we create parent directories first by prioritizing those with shorter paths
@@ -107,8 +66,7 @@ MonitorDirectory::MonitorDirectory( const std::string &path) : logger_(Poco::Log
     logger_.debug( Poco::format("Added %s at priority %Lu", path, (Poco::UInt64) path.length() ) );
 }
 
-#ifdef USE_POCO_DIRECTORY_WATCHER
-void MonitorDirectory::onItemAdded(const Poco::DirectoryWatcher::DirectoryEvent& ev) 
+void PocoMonitorDirectory::onItemAdded(const Poco::DirectoryWatcher::DirectoryEvent& ev) 
 {
     FUNCTIONTRACE;
 
@@ -116,7 +74,7 @@ void MonitorDirectory::onItemAdded(const Poco::DirectoryWatcher::DirectoryEvent&
 
         logger_.debug("Directory Added " + ev.item.path() );
 
-        MonitorDirectory *d = new MonitorDirectory( ev.item.path() ); 
+        PocoMonitorDirectory *d = new PocoMonitorDirectory( ev.item.path() ); 
 
     }
     else if ( ev.item.isFile() ) {
@@ -139,7 +97,7 @@ void MonitorDirectory::onItemAdded(const Poco::DirectoryWatcher::DirectoryEvent&
     }
 }
 
-void MonitorDirectory::onItemRemoved(const Poco::DirectoryWatcher::DirectoryEvent& ev) 
+void PocoMonitorDirectory::onItemRemoved(const Poco::DirectoryWatcher::DirectoryEvent& ev) 
 {
 
     if ( ev.item.isDirectory() ) {
@@ -153,7 +111,7 @@ void MonitorDirectory::onItemRemoved(const Poco::DirectoryWatcher::DirectoryEven
     }
 }
 
-void MonitorDirectory::onItemModified(const Poco::DirectoryWatcher::DirectoryEvent& ev) {
+void PocoMonitorDirectory::onItemModified(const Poco::DirectoryWatcher::DirectoryEvent& ev) {
 
     if ( ev.item.isDirectory() ) {
 
@@ -180,7 +138,7 @@ void MonitorDirectory::onItemModified(const Poco::DirectoryWatcher::DirectoryEve
     }
 }
 
-void MonitorDirectory::onItemMovedFrom(const Poco::DirectoryWatcher::DirectoryEvent& ev) {
+void PocoMonitorDirectory::onItemMovedFrom(const Poco::DirectoryWatcher::DirectoryEvent& ev) {
 
     if ( ev.item.isDirectory() ) {
 
@@ -193,13 +151,13 @@ void MonitorDirectory::onItemMovedFrom(const Poco::DirectoryWatcher::DirectoryEv
     }
 }
 
-void MonitorDirectory::onItemMovedTo(const Poco::DirectoryWatcher::DirectoryEvent& ev) {
+void PocoMonitorDirectory::onItemMovedTo(const Poco::DirectoryWatcher::DirectoryEvent& ev) {
 
     if ( ev.item.isDirectory() ) {
 
         logger_.debug("Directory Moved To " + ev.item.path() );
 
-        MonitorDirectory *d = new MonitorDirectory( ev.item.path() ); 
+        PocoMonitorDirectory *d = new PocoMonitorDirectory( ev.item.path() ); 
 
     }
     else if ( ev.item.isFile() ) {
@@ -207,18 +165,3 @@ void MonitorDirectory::onItemMovedTo(const Poco::DirectoryWatcher::DirectoryEven
         logger_.debug("File Moved To " + ev.item.path() );
     }
 }
-#endif // USE_POCO_DIRECTORY_WATCHER
-
-
-#ifdef USE_LIB_FSWATCH
-static void handleFSWatchEvents(const std::vector<fsw::event>& events, void *context)
-{
-    for ( std::vector<fsw::event>::const_iterator it = events.begin(); it != events.end(); it++ ) {
-        std::cout << " GOT FSWatch Event for " << (*it).get_path() << std::endl;
-        
-    }
-
-    std::cout << "libfswatch " << std::endl;
-
-}
-#endif // USE_LIB_FSWATCH

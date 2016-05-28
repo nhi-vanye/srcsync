@@ -64,7 +64,13 @@
 #include "config.h"
 
 #include "Queue.h"
+
+#ifdef USE_LIB_FSWATCH
 #include "FSWatchMonitorDirectory.h"
+#endif
+#ifdef USE_POCO_DIRECTORY_WATCHER
+#include "PocoMonitorDirectory.h"
+#endif
 
 #include "SourceSync.h"
 
@@ -322,7 +328,13 @@ int SourceSync::main( const std::vector<std::string> &args ) {
 
         logger().notice("Processing initial synchronization");
 
+#ifdef USE_LIB_FSWATCH        
         FSWatchMonitorDirectory *d = new FSWatchMonitorDirectory( config().getString( CONFIG_SRC )  ); 
+#endif
+
+#ifdef USE_POCO_DIRECTORY_WATCHER
+        PocoMonitorDirectory *d = new PocoMonitorDirectory( config().getString( CONFIG_SRC )  ); 
+#endif        
 
         /*
         // create a directory iterator for the source directory 
