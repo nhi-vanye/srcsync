@@ -38,7 +38,7 @@
 
 #include "SourceSync.h"
 
-PocoMonitorDirectory::PocoMonitorDirectory( const std::string &path) : logger_(Poco::Logger::get("MonitorDirectory")) 
+PocoMonitorDirectory::PocoMonitorDirectory( const std::string &path) : MonitorDirectory(path, "PocoMonDir") 
 {
     FUNCTIONTRACE;
 

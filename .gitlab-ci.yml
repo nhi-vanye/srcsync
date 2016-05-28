@@ -20,7 +20,7 @@ release:darwin:
 # that have been set in gitlab console
     - export
     - git log -n 1
-    - ./configure.sh
+    - ./configure.sh -DCMAKE_BUILD_TYPE:STRING=Release
     - cd BUILD
     - make
     - make package
@@ -29,7 +29,7 @@ release:darwin:
     paths:
       - BUILD/srcsync-*sh
 
-devel:darwin:
+devel:libfswatch:darwin:
   stage: build
   tags:
     - darwin
@@ -38,7 +38,22 @@ devel:darwin:
   script:
     - export
     - git log -n 1
-    - ./configure.sh
+    - ./configure.sh -DCMAKE_BUILD_TYPE:STRING=Debug
+    - cd BUILD
+    - make
+    - make package
+    - ls -l
+
+devel:poco:darwin:
+  stage: build
+  tags:
+    - darwin
+  except:
+    - master
+  script:
+    - export
+    - git log -n 1
+    - ./configure.sh -DUSE_LIBFSWATCH=Off -DCMAKE_BUILD_TYPE:STRING=Debug
     - cd BUILD
     - make
     - make package

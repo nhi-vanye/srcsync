@@ -5,7 +5,9 @@
  *
  */
 
-class PocoMonitorDirectory
+#include "MonitorDirectory.h"
+
+class PocoMonitorDirectory : MonitorDirectory
 {
     public:
 
@@ -24,6 +26,5 @@ class PocoMonitorDirectory
 
         Poco::SharedPtr<Poco::DirectoryWatcher> watcher_;
 
-        Poco::Logger &logger_;
 };
 
