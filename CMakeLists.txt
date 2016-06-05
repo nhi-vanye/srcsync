@@ -134,6 +134,40 @@ INSTALL(
 
 ###############################################################################
 #
+# Testing
+#
+#
+ADD_EXECUTABLE( test-srcsync 
+    tests/main.cc 
+    tests/newfile.cc 
+#    tests/updatefile.cc 
+#    tests/deletefile.cc 
+#    test/latency.cc 
+)
+
+SET_TARGET_PROPERTIES( test-srcsync PROPERTIES COMPILE_DEFINITIONS ${COMPILE_DEFINITIONS} )
+
+
+IF ( CMAKE_SYSTEM MATCHES "Darwin" )
+
+  SET_TARGET_PROPERTIES( test-srcsync PROPERTIES INSTALL_RPATH "@loader_path/../lib" )
+
+  IF ( USE_LIBFSWATCH )
+    SET_TARGET_PROPERTIES( test-srcsync PROPERTIES COMPILE_FLAGS "-std=gnu++11")
+  ENDif ( USE_LIBFSWATCH )
+
+ENDIF ( CMAKE_SYSTEM MATCHES "Darwin" )
+
+TARGET_LINK_LIBRARIES( test-srcsync ${LINK_LIBS} gtest )
+
+
+ADD_DEPENDENCIES( test-srcsync ${DEPENDENCIES} )
+
+ADD_TEST( NAME test-srcsync${DBG} COMMAND test-srcsync${DBG} --gtest_output=xml:results/ )
+
+
+###############################################################################
+#
 # Packaging
 #
 #
@@ -231,4 +265,17 @@ ExternalProject_Add(
     DEPENDS "libssh2-git"
 )
 
+
+
+
+ExternalProject_Add(
+    "gtest-git"
+
+    GIT_REPOSITORY "https://github.com/google/googletest.git"
+
+    CMAKE_ARGS -Wno-dev  -Dsrcsync_BINARY_DIR:STATIC=${PROJECT_BINARY_DIR}
+
+    INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} install DESTDIR=${PROJECT_BINARY_DIR}
+
+)
 

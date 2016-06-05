@@ -82,10 +82,6 @@ void SyncWorker::initialize()
         keyC = key.c_str();
 
     }
-    else {
-
-        throw Poco::Exception( "Missing or invalid credentials for " + Poco::Util::Application::instance().config().getString( CONFIG_DEST ) );
-    }
 
     if ( keyC ) {
         logger_.debug( Poco::format("%s: connecting as %s to %s using keyfile %s %s", name_, user, remote_->getHost(), key , pass) );
@@ -161,7 +157,7 @@ void SyncWorker::run()
                     }
 
                     if ( ignoreThisFile ) {
-                        logger_.information( Poco::format("Ignoring %s", localPath) );
+                        logger_.notice( Poco::format("Ignoring %s", localPath) );
                     }
                     else {
                         std::string remotePath = remote_->getPath();
@@ -177,9 +173,9 @@ void SyncWorker::run()
 
                         files.insert( localPath );
 
-                        client.upload( localPath.c_str(), remotePath.c_str(), &files );
+                        int numFiles = client.upload( localPath.c_str(), remotePath.c_str(), &files );
 
-                        logger_.notice( Poco::format("Updated %s", localPath) );
+                        logger_.notice( Poco::format("Updated %d file(s) %s", numFiles, localPath) );
                         logger_.debug( Poco::format("%s: updated %s", name_, localPath) );
                     }
 
@@ -210,7 +206,7 @@ void SyncWorker::run()
                     }
 
                     if ( ignoreThisFile ) {
-                        logger_.information( Poco::format("Ignoring %s", localPath) );
+                        logger_.notice( Poco::format("Ignoring %s", localPath) );
                     }
                     else {
                         std::string remotePath = remote_->getPath();
@@ -222,9 +218,9 @@ void SyncWorker::run()
                         remotePath += msg->path();
                         logger_.debug( Poco::format("%s: syncing dir %s to %s", name_, localPath, remotePath ) );
 
-                        client.upload( localPath.c_str(), remotePath.c_str() );
+                        int numFiles = client.upload( localPath.c_str(), remotePath.c_str() );
 
-                        logger_.notice( Poco::format("Updated %s", localPath) );
+                        logger_.notice( Poco::format("Updated %d file(s) %s", numFiles, localPath) );
                         logger_.debug( Poco::format("%s: updated %s", name_, localPath) );
                     }
                 }
