@@ -21,6 +21,7 @@
 #include <openssl/md5.h>
 
 #include "SourceSync.h"
+#include "AcrosyncWorker.h"
 
 #include "config.h"
 

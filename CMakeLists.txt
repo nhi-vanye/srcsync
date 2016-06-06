@@ -59,8 +59,9 @@ ENDIF ( CMAKE_SYSTEM MATCHES "Darwin" )
 # Downside is that fswatch is a pain to compile on Windows (needs cygwin and gcc)
 #
 OPTION( USE_LIBFSWATCH "Use libfswatch library" ${USE_LIBFSWATCH_DEFAULT} )
+OPTION( USE_ACROSYNC "Use acrosync library" 1 )
 
-SET ( SRCS src/SourceSync.cc src/Queue.cc src/SyncWorker.cc )
+SET ( SRCS src/SourceSync.cc src/Queue.cc src/AcrosyncWorker.cc )
 
 SET ( LINK_LIBS  PocoNet PocoUtil PocoFoundation acrosync ssh2 crypto iconv z  )
 
@@ -97,6 +98,12 @@ ELSE ( USE_LIBFSWATCH )
   LIST( APPEND SRCS src/PocoMonitorDirectory.cc )
 
 ENDif ( USE_LIBFSWATCH )
+
+IF ( USE_ACROSYNC ) 
+
+  SET( COMPILE_DEFINITIONS "${COMPILE_DEFINITIONS}:USE_ACROSYNC" )
+
+ENDIF ( USE_ACROSYNC ) 
 
 
 ADD_EXECUTABLE( srcsync ${SRCS} )
