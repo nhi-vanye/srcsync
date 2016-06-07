@@ -49,27 +49,25 @@ class SyncWorker : public Poco::Runnable
 {
 
     public:
-        SyncWorker( const std::string &name, Poco::PriorityNotificationQueue *queue);
+        SyncWorker( const std::string &name, Poco::PriorityNotificationQueue *queue) : name_(name), queue_( queue ), logger_(Poco::Logger::get("SyncWorker")) {} ;
 
-        void run();
-        std::string name() { return name_; };
+        virtual void run() {} ;
+        virtual std::string name() { return name_; };
 
-        void initialize();
+        virtual void initialize() {};
 
 
     protected:
         std::string name_;
         Poco::PriorityNotificationQueue *queue_;
 
-    private:
-        Poco::SharedPtr<Poco::URI> remote_;
-
-        Poco::Logger &logger_;
-
-        rsync::SSHIO  sshio_;
 
         std::vector<Poco::Glob *> ignore_;
 
+        Poco::SharedPtr<Poco::URI> remote_;
+
+    private:
+        Poco::Logger &logger_;
 };
 
 

@@ -27,7 +27,7 @@
 
 
 
-SyncWorker::SyncWorker ( const std::string &name, Poco::PriorityNotificationQueue *queue) : name_(name), queue_( queue ), logger_(Poco::Logger::get("SyncWorker")) 
+AcrosyncWorker::AcrosyncWorker ( const std::string &name, Poco::PriorityNotificationQueue *queue) : SyncWorker(name, queue), logger_(Poco::Logger::get("Acrosync")) 
 { 
     FUNCTIONTRACE;
 
@@ -53,7 +53,7 @@ SyncWorker::SyncWorker ( const std::string &name, Poco::PriorityNotificationQueu
     initialize();
 }
 
-void SyncWorker::initialize()
+void AcrosyncWorker::initialize()
 {
 
     const char * userC = NULL;
@@ -102,7 +102,7 @@ void SyncWorker::initialize()
 
 
 
-void SyncWorker::run()
+void AcrosyncWorker::run()
 {
     FUNCTIONTRACE;
 
