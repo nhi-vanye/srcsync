@@ -61,7 +61,7 @@ ENDIF ( CMAKE_SYSTEM MATCHES "Darwin" )
 OPTION( USE_LIBFSWATCH "Use libfswatch library" ${USE_LIBFSWATCH_DEFAULT} )
 OPTION( USE_ACROSYNC "Use acrosync library" 1 )
 
-SET ( SRCS src/SourceSync.cc src/Queue.cc src/AcrosyncWorker.cc )
+SET ( SRCS src/SourceSync.cc src/Queue.cc src/AcrosyncWorker.cc src/RsyncWorker.cc )
 
 SET ( LINK_LIBS  PocoNet PocoUtil PocoFoundation acrosync ssh2 crypto iconv z  )
 

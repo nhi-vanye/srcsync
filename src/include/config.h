@@ -13,19 +13,22 @@
 
 // main program
 //
-#define CONFIG_HELP     APPNAME ".help"     // --help
-#define CONFIG_SRC      APPNAME ".src"      // --src
-#define CONFIG_DEST     APPNAME ".dest"     // --dest
-#define CONFIG_VERBOSE  APPNAME ".verbose"  // --verbose
-#define CONFIG_PROFILE  APPNAME ".profile"  // --profile
-#define CONFIG_IGNORE   APPNAME ".ignore"   // --ignore
+#define CONFIG_HELP                     APPNAME ".help"     // --help
+#define CONFIG_SRC                      APPNAME ".src"      // --src
+#define CONFIG_DEST                     APPNAME ".dest"     // --dest
+#define CONFIG_VERBOSE                  APPNAME ".verbose"  // --verbose
+#define CONFIG_PROFILE                  APPNAME ".profile"  // --profile
+#define CONFIG_IGNORE                   APPNAME ".ignore"   // --ignore
+#define CONFIG_SYNC_METHOD              APPNAME ".sync-method"   // --method
+#define CONFIG_SYNC_METHOD_ACROSYNC     "acrosync"
+#define CONFIG_SYNC_METHOD_RSYNC        "rsync"
 
 // Queue management
 //
-#define CONFIG_QUEUE_WORKER_COUNT   APPNAME ".queue.worker.count"
-#define CONFIG_QUEUE_MIN_THREADS    APPNAME ".queue.thread-min"
-#define CONFIG_QUEUE_MAX_THREADS    APPNAME ".queue.thread-max"
-#define CONFIG_QUEUE_THREAD_IDLE    APPNAME ".queue.thread-idle"
+#define CONFIG_QUEUE_WORKER_COUNT       APPNAME ".queue.worker.count"
+#define CONFIG_QUEUE_MIN_THREADS        APPNAME ".queue.thread-min"
+#define CONFIG_QUEUE_MAX_THREADS        APPNAME ".queue.thread-max"
+#define CONFIG_QUEUE_THREAD_IDLE        APPNAME ".queue.thread-idle"
 
 // rsync library
 #define CONFIG_RSYNC_LOG_LEVEL          APPNAME ".rsync.log.level"
