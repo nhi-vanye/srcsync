@@ -78,8 +78,6 @@ void RsyncWorker::initialize()
 bool RsyncWorker::runRsync( const std::string & from, const std::string &to )
 {
 
-
-
     Poco::Process::Args args;
 
     args.push_back( "--archive" ); // permissions, times etc..
@@ -132,7 +130,6 @@ bool RsyncWorker::runRsync( const std::string & from, const std::string &to )
 
         Poco::PipeInputStream outStream(outPipe);
         Poco::PipeInputStream errStream(errPipe);
-
 
         // these run in an active method so we don't block
         readOutPipe( outStream );
@@ -221,7 +218,7 @@ void RsyncWorker::run()
                     }
 
                     if ( ignoreThisFile ) {
-                        logger_.notice( Poco::format("Ignoring %s", localPath) );
+                        logger_.notice( Poco::format("%s: Ignoring %s", name_, localPath) );
                     }
                     else {
                         std::string remotePath = remote_->getHost() + ":" + remote_->getPath();
@@ -234,7 +231,7 @@ void RsyncWorker::run()
 
                         runRsync ( localPath, remotePath );
 
-                        logger_.debug( Poco::format("%s: updated %s", name_, localPath) );
+                        logger_.notice( Poco::format("%s: Updated %s", name_, localPath) );
                     }
 
                 }
@@ -264,7 +261,7 @@ void RsyncWorker::run()
                     }
 
                     if ( ignoreThisFile ) {
-                        logger_.notice( Poco::format("Ignoring %s", localPath) );
+                        logger_.notice( Poco::format("%s: Ignoring %s", name_, localPath) );
                     }
                     else {
                         std::string remotePath = remote_->getHost() + ":" + remote_->getPath();
@@ -277,7 +274,7 @@ void RsyncWorker::run()
 
                         runRsync ( localPath, remotePath );
 
-                        logger_.debug( Poco::format("%s: updated %s", name_, localPath) );
+                        logger_.notice( Poco::format("%s: Updated %s", name_, localPath) );
                     }
                 }
 

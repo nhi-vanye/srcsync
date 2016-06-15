@@ -64,9 +64,6 @@ FSWatchMonitorDirectory::FSWatchMonitorDirectory( const std::string &path) : Mon
 
         // uses CWD
         base_ = p.absolute();
-        logger_.debug( "DEBUG A " + base_.toString());
-        Poco::Path b =  Poco::Path::current() + Poco::Path::separator() + path;
-        logger_.debug( "DEBUG B " + b.toString());
     }
 
     logger_.debug( Poco::format("Monitoring %s (%s)",path, base_.toString() ) );
@@ -100,8 +97,6 @@ FSWatchMonitorDirectory::FSWatchMonitorDirectory( const std::string &path) : Mon
 
     std::string pathRelativeToBase( path );
 
-    logger_.debug( "DEBUG 5 " + pathRelativeToBase );
-    logger_.debug( "DEBUG 6 " + base_.toString() );
     Poco::replaceInPlace( pathRelativeToBase, base_.toString().c_str(), "" );
 
     logger_.information( Poco::format("Syncing (d) %s...", pathRelativeToBase ) );
@@ -156,8 +151,6 @@ void FSWatchMonitorDirectory::handleEvents(const std::vector<fsw::event>& events
 
                     std::string pathRelativeToBase( ev.get_path() );
 
-                    logger_.debug( "DEBUG 1 " + pathRelativeToBase );
-                    logger_.debug( "DEBUG 2 " + base_.toString() );
                     Poco::replaceInPlace( pathRelativeToBase, base_.toString().c_str(), "" );
 
                     logger_.information( Poco::format("Syncing (f) %s...", pathRelativeToBase ) );
@@ -180,8 +173,6 @@ void FSWatchMonitorDirectory::handleEvents(const std::vector<fsw::event>& events
 
                     std::string pathRelativeToBase( ev.get_path() );
 
-                    logger_.debug( "DEBUG 3 " + pathRelativeToBase );
-                    logger_.debug( "DEBUG 4 " + base_.toString() );
                     Poco::replaceInPlace( pathRelativeToBase, base_.toString().c_str(), "" );
 
                     logger_.information( Poco::format("Syncing (d) %s...", pathRelativeToBase ) );

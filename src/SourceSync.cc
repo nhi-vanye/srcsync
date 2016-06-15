@@ -111,6 +111,7 @@ void SourceSync::initialize( Poco::Util::Application &self )
 
         logger().information( "Log configuration file '" + logConfigPath + "' not found, using defaults");
 
+        config().setString("logging.loggers.root.level", "notice");
         config().setString("logging.loggers.root.channel", "c1");
         config().setString("logging.formatters.f1.class", "PatternFormatter");
         config().setString("logging.formatters.f1.pattern", "%H:%M:%S [%q] %t");
@@ -261,7 +262,7 @@ void SourceSync::handleVerbose(const std::string &name, const std::string &value
 
     int v =
 #ifdef _DEBUG 
-        Poco::Message::PRIO_INFORMATION;
+        Poco::Message::PRIO_NOTICE;
 #else
     Poco::Message::PRIO_ERROR;
 #endif
@@ -292,11 +293,7 @@ int SourceSync::main( const std::vector<std::string> &args ) {
 
     setLogger(Poco::Logger::get("SourceSync"));
 
-    if ( config().hasProperty( CONFIG_VERBOSE ) ) {
-
-        logger().setLevel("", config().getInt( CONFIG_VERBOSE ) );
-    }
-
+    config().setInt( CONFIG_VERBOSE, logger().getLevel() );
 
     if ( config().getString( CONFIG_HELP ).empty() ) {
 
