@@ -21,12 +21,13 @@
 #include <openssl/md5.h>
 
 #include "SourceSync.h"
+#include "AcrosyncWorker.h"
 
 #include "config.h"
 
 
 
-SyncWorker::SyncWorker ( const std::string &name, Poco::PriorityNotificationQueue *queue) : name_(name), queue_( queue ), logger_(Poco::Logger::get("SyncWorker")) 
+AcrosyncWorker::AcrosyncWorker ( const std::string &name, Poco::PriorityNotificationQueue *queue) : SyncWorker(name, queue), logger_(Poco::Logger::get("Acrosync")) 
 { 
     FUNCTIONTRACE;
 
@@ -52,7 +53,7 @@ SyncWorker::SyncWorker ( const std::string &name, Poco::PriorityNotificationQueu
     initialize();
 }
 
-void SyncWorker::initialize()
+void AcrosyncWorker::initialize()
 {
 
     const char * userC = NULL;
@@ -82,10 +83,6 @@ void SyncWorker::initialize()
         keyC = key.c_str();
 
     }
-    else {
-
-        throw Poco::Exception( "Missing or invalid credentials for " + Poco::Util::Application::instance().config().getString( CONFIG_DEST ) );
-    }
 
     if ( keyC ) {
         logger_.debug( Poco::format("%s: connecting as %s to %s using keyfile %s %s", name_, user, remote_->getHost(), key , pass) );
@@ -105,7 +102,7 @@ void SyncWorker::initialize()
 
 
 
-void SyncWorker::run()
+void AcrosyncWorker::run()
 {
     FUNCTIONTRACE;
 
@@ -161,14 +158,10 @@ void SyncWorker::run()
                     }
 
                     if ( ignoreThisFile ) {
-                        logger_.information( Poco::format("Ignoring %s", localPath) );
+                        logger_.notice( Poco::format("Ignoring %s", localPath) );
                     }
                     else {
                         std::string remotePath = remote_->getPath();
-
-                        if ( remotePath.back() != '/' ) {
-                            remotePath += Poco::Path::separator();
-                        }
 
                         remotePath += msg->path();
 
@@ -177,9 +170,12 @@ void SyncWorker::run()
 
                         files.insert( localPath );
 
-                        client.upload( localPath.c_str(), remotePath.c_str(), &files );
+                        if ( Poco::Util::Application::instance().config().getString( CONFIG_DRYRUN).empty() == false ) {
+                            int numFiles = client.upload( localPath.c_str(), remotePath.c_str(), &files );
 
-                        logger_.notice( Poco::format("Updated %s", localPath) );
+                            logger_.notice( Poco::format("Updated %d file(s) %s", numFiles, localPath) );
+                        }
+
                         logger_.debug( Poco::format("%s: updated %s", name_, localPath) );
                     }
 
@@ -210,21 +206,20 @@ void SyncWorker::run()
                     }
 
                     if ( ignoreThisFile ) {
-                        logger_.information( Poco::format("Ignoring %s", localPath) );
+                        logger_.notice( Poco::format("Ignoring %s", localPath) );
                     }
                     else {
                         std::string remotePath = remote_->getPath();
 
-                        if ( remotePath.back() != '/' ) {
-                            remotePath += Poco::Path::separator();
-                        }
-
                         remotePath += msg->path();
                         logger_.debug( Poco::format("%s: syncing dir %s to %s", name_, localPath, remotePath ) );
 
-                        client.upload( localPath.c_str(), remotePath.c_str() );
+                        if ( Poco::Util::Application::instance().config().getString( CONFIG_DRYRUN).empty() == false ) {
+                            int numFiles = client.upload( localPath.c_str(), remotePath.c_str() );
 
-                        logger_.notice( Poco::format("Updated %s", localPath) );
+                            logger_.notice( Poco::format("Updated %d file(s) %s", numFiles, localPath) );
+                        }
+
                         logger_.debug( Poco::format("%s: updated %s", name_, localPath) );
                     }
                 }

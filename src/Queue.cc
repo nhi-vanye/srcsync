@@ -13,6 +13,9 @@
 
 #include "Queue.h"
 
+#include "AcrosyncWorker.h"
+#include "RsyncWorker.h"
+
 #include "config.h"
 
 Queue::Queue() : logger_(Poco::Logger::get("QueueMangr")) 
@@ -22,9 +25,18 @@ Queue::Queue() : logger_(Poco::Logger::get("QueueMangr"))
 
     queue_ = new Poco::PriorityNotificationQueue;
 
+    std::string method = Poco::Util::Application::instance().config().getString( CONFIG_SYNC_METHOD );
+
     for ( int i = 0; i < Poco::Util::Application::instance().config().getInt( CONFIG_QUEUE_WORKER_COUNT, 8 ); i++ ) {
 
-        workers_.push_back( new SyncWorker( Poco::format("worker-%d", i ) , queue_ ) );   
+        if ( method == CONFIG_SYNC_METHOD_ACROSYNC ) {
+            workers_.push_back( new AcrosyncWorker( Poco::format("worker-%d", i ) , queue_ ) );
+        }
+
+        if ( method == CONFIG_SYNC_METHOD_RSYNC ) {
+            workers_.push_back( new RsyncWorker( Poco::format("worker-%d", i ) , queue_ ) );
+        }
+
     }
 
     // create a Thread Pool.
@@ -40,14 +52,16 @@ Queue::Queue() : logger_(Poco::Logger::get("QueueMangr"))
         pool_->start( *w );
     }
 
-    // rsync logging is limited to a single Log object, so we can't push
-    // this down to the workers :-(
-    rsync::Log::out.connect(this, &Queue::logCallback);
+    if ( method == CONFIG_SYNC_METHOD_ACROSYNC ) {
+        // acrosync logging is limited to a single Log object, so we can't push
+        // this down to the workers :-(
+        rsync::Log::out.connect(this, &Queue::logCallback);
 
 
-    int rsyncLogLevel = Poco::Util::Application::instance().config().getInt( CONFIG_RSYNC_LOG_LEVEL, 3);
+        int rsyncLogLevel = Poco::Util::Application::instance().config().getInt( CONFIG_RSYNC_LOG_LEVEL, 3);
 
-    rsync::Log::setLevel( (rsync::Log::Level) rsyncLogLevel );
+        rsync::Log::setLevel( (rsync::Log::Level) rsyncLogLevel );
+    }
 }
 
 void Queue::logCallback(const char *id, int level, const char *message)

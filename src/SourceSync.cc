@@ -111,6 +111,7 @@ void SourceSync::initialize( Poco::Util::Application &self )
 
         logger().information( "Log configuration file '" + logConfigPath + "' not found, using defaults");
 
+        config().setString("logging.loggers.root.level", "notice");
         config().setString("logging.loggers.root.channel", "c1");
         config().setString("logging.formatters.f1.class", "PatternFormatter");
         config().setString("logging.formatters.f1.pattern", "%H:%M:%S [%q] %t");
@@ -209,7 +210,7 @@ void SourceSync::defineOptions( Poco::Util::OptionSet &options )
             .binding( CONFIG_SRC ) );
 
     options.addOption(
-            Poco::Util::Option( "dest", "d", "Miror to URI ( destination )" )
+            Poco::Util::Option( "dest", "d", "Mirror to URI ( destination )" )
             .required( false )
             .repeatable( false )
             .argument( "URI" )
@@ -235,11 +236,24 @@ void SourceSync::defineOptions( Poco::Util::OptionSet &options )
             .argument( "VER" )
             .binding( CONFIG_RSYNC_PROTOCOL_VERSION ) );
 
+    options.addOption(
+            Poco::Util::Option( "method", "", Poco::format("Use METHOD to synchronize (%s, %s)", std::string(CONFIG_SYNC_METHOD_ACROSYNC), std::string(CONFIG_SYNC_METHOD_RSYNC)  ))
+            .required( false )
+            .repeatable( false )
+            .argument( "METHOD" )
+            .binding( CONFIG_SYNC_METHOD ) );
 
+    options.addOption(
+            Poco::Util::Option( "dry-run", "-n", "Try to synchronize, but don't" )
+            .required( false )
+            .repeatable( false )
+            .binding( CONFIG_DRYRUN ) );
 
     config().setString( CONFIG_HELP, "-false-");
     config().setString( CONFIG_SRC, "");
     config().setString( CONFIG_DEST, "");
+    config().setString( CONFIG_SYNC_METHOD, "rsync");
+    config().setString( CONFIG_DRYRUN, "false");
 };
 
 void SourceSync::handleVerbose(const std::string &name, const std::string &value)
@@ -248,7 +262,7 @@ void SourceSync::handleVerbose(const std::string &name, const std::string &value
 
     int v =
 #ifdef _DEBUG 
-        Poco::Message::PRIO_INFORMATION;
+        Poco::Message::PRIO_NOTICE;
 #else
     Poco::Message::PRIO_ERROR;
 #endif
@@ -279,11 +293,7 @@ int SourceSync::main( const std::vector<std::string> &args ) {
 
     setLogger(Poco::Logger::get("SourceSync"));
 
-    if ( config().hasProperty( CONFIG_VERBOSE ) ) {
-
-        logger().setLevel("", config().getInt( CONFIG_VERBOSE ) );
-    }
-
+    config().setInt( CONFIG_VERBOSE, logger().getLevel() );
 
     if ( config().getString( CONFIG_HELP ).empty() ) {
 
@@ -309,19 +319,30 @@ int SourceSync::main( const std::vector<std::string> &args ) {
             throw Poco::Exception( "No destination argument specified" );
         }
 
+        // ensure we always have src and destination ending with '/'
+        if ( config().getString( CONFIG_SRC).back() != '/' ) {
+
+            config().setString( CONFIG_SRC, config().getString( CONFIG_SRC) + Poco::Path::separator() );
+        }
+        if ( config().getString( CONFIG_DEST).back() != '/' ) {
+
+            config().setString( CONFIG_DEST, config().getString( CONFIG_DEST) + Poco::Path::separator() );
+        }
+
         logger().notice( Poco::format( "Syncing from %s to %s", 
                     config().getString( CONFIG_SRC ) ,
                     config().getString( CONFIG_DEST, "" )  ) );
 
-        rsync::SocketUtil::startup();
+        if ( config().getString( CONFIG_SYNC_METHOD ) == CONFIG_SYNC_METHOD_ACROSYNC ) {
+            rsync::SocketUtil::startup();
 
-        // initiate libssh2
-        //
-        int rc = libssh2_init(0);
-        if (rc != 0) {
-            throw Poco::Exception( "Failed to initiate libssh2");
+            // initiate libssh2
+            //
+            int rc = libssh2_init(0);
+            if (rc != 0) {
+                throw Poco::Exception( "Failed to initiate libssh2");
+            }
         }
-
 
         // create the Queue for managing workers
         queue_ = new Queue;
@@ -336,23 +357,6 @@ int SourceSync::main( const std::vector<std::string> &args ) {
         PocoMonitorDirectory *d = new PocoMonitorDirectory( config().getString( CONFIG_SRC )  ); 
 #endif        
 
-        /*
-        // create a directory iterator for the source directory 
-        // and spin up a MonitorDirectory instance for each one
-        Poco::SimpleRecursiveDirectoryIterator dirIt( config().getString( CONFIG_SRC ) );
-        Poco::SimpleRecursiveDirectoryIterator end;
-
-        while ( dirIt != end ) {
-
-            if ( dirIt->isDirectory() ) {
-
-                MonitorDirectory *d = new MonitorDirectory( dirIt->path() ); 
-
-            }
-
-            ++dirIt;
-        }
-*/
         // get enough queued so that queue size isn't zero before checking...
         Poco::Thread::sleep(5000);
         while ( jobCount_.value() != 0 ) {
