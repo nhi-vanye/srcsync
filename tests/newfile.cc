@@ -56,7 +56,7 @@ TEST_F(NewFile,newZeroLengthFile)
     Poco::Thread::sleep( po_config().getInt( "test.sleep" ) * 1000 );
 
     // does the file exist in destination ?
-    Poco::Path destPath( Poco::format("%s/%s/%Lu", po_config().getString( "test.destdir"), po_config().getString( "test.srcdir"), (Poco::UInt64) now.epochMicroseconds() ) );
+    Poco::Path destPath( Poco::format("%s/%Lu", po_config().getString( "test.destdir"), (Poco::UInt64) now.epochMicroseconds() ) );
     Poco::File destFile( destPath );
 
     // does it exist
@@ -88,7 +88,7 @@ TEST_F(NewFile,newNonZeroLengthFile)
     Poco::Thread::sleep( po_config().getInt( "test.sleep" ) * 1000 );
 
     // does the file exist in destination ?
-    Poco::Path destPath( Poco::format("%s/%s/%Lu", po_config().getString( "test.destdir"), po_config().getString( "test.srcdir"), (Poco::UInt64) now.epochMicroseconds() ) );
+    Poco::Path destPath( Poco::format("%s/%Lu", po_config().getString( "test.destdir"), (Poco::UInt64) now.epochMicroseconds() ) );
     Poco::File destFile( destPath );
 
     // does it exist
@@ -116,7 +116,7 @@ TEST_F(NewFile,newIgnoredZeroLengthFile)
     Poco::Thread::sleep( po_config().getInt( "test.sleep" ) * 1000 );
 
     // does the file exist in destination ?
-    Poco::Path destPath( Poco::format("%s/%s/%Lu.IGNORE", po_config().getString( "test.destdir"), po_config().getString( "test.srcdir"), (Poco::UInt64) now.epochMicroseconds() ) );
+    Poco::Path destPath( Poco::format("%s/%Lu.IGNORE", po_config().getString( "test.destdir"), (Poco::UInt64) now.epochMicroseconds() ) );
     Poco::File destFile( destPath );
 
     // does it exist

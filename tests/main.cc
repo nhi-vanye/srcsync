@@ -144,7 +144,6 @@ class SourceSyncTest : public Poco::Util::Application
             launchArgs.push_back( Poco::format( "--to=ssh://%s@localhost%s", auth, dstPath.absolute().toString() ) );
             launchArgs.push_back( "--ignore=*.IGNORE" );
             launchArgs.push_back( "-v10" );
-            launchArgs.push_back( "--rsync-log-level=1" );
 
             if ( config().getString( "test.keyfile", "").empty() == false ) {
 
