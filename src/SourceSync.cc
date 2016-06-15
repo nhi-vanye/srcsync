@@ -114,7 +114,7 @@ void SourceSync::initialize( Poco::Util::Application &self )
         config().setString("logging.loggers.root.level", "notice");
         config().setString("logging.loggers.root.channel", "c1");
         config().setString("logging.formatters.f1.class", "PatternFormatter");
-        config().setString("logging.formatters.f1.pattern", "%H:%M:%S [%q] %t");
+        config().setString("logging.formatters.f1.pattern", "%L%H:%M:%S [%q] %t"); // %L converts to local time
         config().setString("logging.channels.c1.class", "ConsoleChannel");
         config().setString("logging.channels.c1.formatter", "f1");
 
@@ -164,6 +164,12 @@ void SourceSync::defineOptions( Poco::Util::OptionSet &options )
             .required( false )
             .repeatable( false )
             .binding( CONFIG_HELP ) );
+
+    options.addOption(
+            Poco::Util::Option( "version", "", "display version number" )
+            .required( false )
+            .repeatable( false )
+            .binding( CONFIG_VERSION ) );
 
     options.addOption(
             Poco::Util::Option("verbose", "v", "set verbosity of messages")
@@ -298,6 +304,12 @@ int SourceSync::main( const std::vector<std::string> &args ) {
     if ( config().getString( CONFIG_HELP ).empty() ) {
 
         displayHelp();
+        return Poco::Util::Application::EXIT_OK;
+    }
+
+    if ( config().getString( CONFIG_VERSION ).empty() ) {
+
+        std::cout << APPNAME << " version " << MAJORVERSION << "." << MINORVERSION << "." << PATCHVERSION << "-" << BUILDID << COMMIT << std::endl; 
         return Poco::Util::Application::EXIT_OK;
     }
 

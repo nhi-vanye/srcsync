@@ -14,6 +14,7 @@
 // main program
 //
 #define CONFIG_HELP                     APPNAME ".help"     // --help
+#define CONFIG_VERSION                  APPNAME ".version"  // --version
 #define CONFIG_SRC                      APPNAME ".src"      // --src
 #define CONFIG_DEST                     APPNAME ".dest"     // --dest
 #define CONFIG_VERBOSE                  APPNAME ".verbose"  // --verbose
