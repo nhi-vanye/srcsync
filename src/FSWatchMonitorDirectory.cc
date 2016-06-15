@@ -64,6 +64,9 @@ FSWatchMonitorDirectory::FSWatchMonitorDirectory( const std::string &path) : Mon
 
         // uses CWD
         base_ = p.absolute();
+        logger_.debug( "DEBUG A " + base_.toString());
+        Poco::Path b =  Poco::Path::current() + Poco::Path::separator() + path;
+        logger_.debug( "DEBUG B " + b.toString());
     }
 
     logger_.debug( Poco::format("Monitoring %s (%s)",path, base_.toString() ) );
@@ -94,7 +97,17 @@ FSWatchMonitorDirectory::FSWatchMonitorDirectory( const std::string &path) : Mon
     // make sure we create parent directories first by prioritizing those with shorter paths
     // files will get prioritized by modified date.
     logger_.debug( Poco::format("Adding %s at priority %Lu", path, (Poco::UInt64) path.length() ) );
-    thisApp->queue()->enqueueNotification( new DirSyncMessage( path ), path.length() );
+
+    std::string pathRelativeToBase( path );
+
+    logger_.debug( "DEBUG 5 " + pathRelativeToBase );
+    logger_.debug( "DEBUG 6 " + base_.toString() );
+    Poco::replaceInPlace( pathRelativeToBase, base_.toString().c_str(), "" );
+
+    logger_.information( Poco::format("Syncing (d) %s...", pathRelativeToBase ) );
+    logger_.debug( Poco::format("Queuing directory %s at priority %d", std::string("."), 1 ) );
+
+    thisApp->queue()->enqueueNotification( new DirSyncMessage( "." ), 1 );
     logger_.information( Poco::format("%d task(s) in queue", thisApp->jobCount() ) );
 
     // start monitoring in a new thread
@@ -112,30 +125,76 @@ void FSWatchMonitorDirectory::handleEvents(const std::vector<fsw::event>& events
         for ( std::vector<fsw_event_flag>::iterator jt = flags.begin(); jt != flags.end(); jt++ ) {
 
 
-            if ( *jt & IsFile ) {
+            if ( *jt & Removed ) {
 
-                std::string pathRelativeToBase( ev.get_path() );
+                // something has been removed - handle that by 
+                // sending a DirSync message for its PARENT directory
 
-                Poco::replaceInPlace( pathRelativeToBase, base_.toString().c_str(), "" );
+                Poco::Path path( ev.get_path() );
 
-                logger_.information( Poco::format("Syncing (f) %s...", pathRelativeToBase ) );
-                logger_.debug( Poco::format("Queuing file %s at priority %Lu", pathRelativeToBase, (Poco::UInt64) ev.get_time() ) );
-
-                thisApp->queue()->enqueueNotification( 
-                        new FileSyncMessage( pathRelativeToBase ), ev.get_time() );
-
-            }
-            else if ( *jt & IsDir ) {
-
-                std::string pathRelativeToBase( ev.get_path() );
+                std::string pathRelativeToBase( path.parent().toString() );
 
                 Poco::replaceInPlace( pathRelativeToBase, base_.toString().c_str(), "" );
 
-                logger_.information( Poco::format("Syncing (d) %s...", pathRelativeToBase ) );
+                if ( pathRelativeToBase.empty() ) {
+
+                    pathRelativeToBase = ".";
+                }
+
+                logger_.information( Poco::format("Syncing (d) %s %s %s %s...", ev.get_path(), path.toString(), path.parent().toString(), pathRelativeToBase ) );
                 logger_.debug( Poco::format("Queuing directory %s at priority %Lu", pathRelativeToBase, (Poco::UInt64) ev.get_time() ) );
 
                 thisApp->queue()->enqueueNotification( 
                         new DirSyncMessage( pathRelativeToBase ),  ev.get_time()  );
+
+            }
+            else if ( *jt & IsFile ) {
+
+                Poco::File f ( ev.get_path() );
+
+                if ( f.exists() ) {
+
+                    std::string pathRelativeToBase( ev.get_path() );
+
+                    logger_.debug( "DEBUG 1 " + pathRelativeToBase );
+                    logger_.debug( "DEBUG 2 " + base_.toString() );
+                    Poco::replaceInPlace( pathRelativeToBase, base_.toString().c_str(), "" );
+
+                    logger_.information( Poco::format("Syncing (f) %s...", pathRelativeToBase ) );
+                    logger_.debug( Poco::format("Queuing file %s at priority %Lu", pathRelativeToBase, (Poco::UInt64) ev.get_time() ) );
+
+                    thisApp->queue()->enqueueNotification( 
+                            new FileSyncMessage( pathRelativeToBase ), ev.get_time() );
+                }
+                else {
+
+                    logger_.information( Poco::format("Not syncing non-existant file %s...", f.path() ) );
+                }
+
+            }
+            else if ( *jt & IsDir ) {
+
+                Poco::File f ( ev.get_path() );
+
+                if ( f.exists() ) {
+
+                    std::string pathRelativeToBase( ev.get_path() );
+
+                    logger_.debug( "DEBUG 3 " + pathRelativeToBase );
+                    logger_.debug( "DEBUG 4 " + base_.toString() );
+                    Poco::replaceInPlace( pathRelativeToBase, base_.toString().c_str(), "" );
+
+                    logger_.information( Poco::format("Syncing (d) %s...", pathRelativeToBase ) );
+                    logger_.debug( Poco::format("Queuing directory %s at priority %Lu", pathRelativeToBase, (Poco::UInt64) ev.get_time() ) );
+
+                    thisApp->queue()->enqueueNotification( 
+                            new DirSyncMessage( pathRelativeToBase ),  ev.get_time()  );
+                }
+                else {
+
+                    logger_.information( Poco::format("Not syncing non-existant directory %s...", f.path() ) );
+                }
+
 
             }
             else {

@@ -26,17 +26,11 @@ RsyncWorker::RsyncWorker ( const std::string &name, Poco::PriorityNotificationQu
 
     logger_.debug( "Creating " + name_ );
 
-    logger_.error( "DEBUG 0 " + Poco::Util::Application::instance().config().getString( CONFIG_SRC ) );
-
     local_ = Poco::Path( Poco::Util::Application::instance().config().getString( CONFIG_SRC ) );
 
-    logger_.error( "DEBUG 1 " + local_.toString() );
-
     local_.makeAbsolute();
-    logger_.error( "DEBUG 2 " + local_.toString() );
 
     remote_ = new Poco::URI( Poco::Util::Application::instance().config().getString( CONFIG_DEST ) );
-
 
     std::string ignore = Poco::Util::Application::instance().config().getString( CONFIG_IGNORE, "" );
 
@@ -126,23 +120,26 @@ bool RsyncWorker::runRsync( const std::string & from, const std::string &to )
 
     logger_.debug( Poco::format("%s: %s", name_, launchCmd ) );
 
-    Poco::Pipe outPipe;
-    Poco::Pipe errPipe;
+    if ( Poco::Util::Application::instance().config().getString( CONFIG_DRYRUN).empty() == false ) {
 
-    Poco::ProcessHandle handle = Poco::Process::launch( "rsync", args, 
-            NULL, // no stdin needed
-            &outPipe, 
-            &errPipe);
-    
-    Poco::PipeInputStream outStream(outPipe);
-    Poco::PipeInputStream errStream(errPipe);
+        Poco::Pipe outPipe;
+        Poco::Pipe errPipe;
+
+        Poco::ProcessHandle handle = Poco::Process::launch( "rsync", args, 
+                NULL, // no stdin needed
+                &outPipe, 
+                &errPipe);
+
+        Poco::PipeInputStream outStream(outPipe);
+        Poco::PipeInputStream errStream(errPipe);
 
 
-    // these run in an active method so we don't block
-    readOutPipe( outStream );
-    readErrPipe( errStream );
+        // these run in an active method so we don't block
+        readOutPipe( outStream );
+        readErrPipe( errStream );
 
-    handle.wait();
+        handle.wait();
+    }
 
     return true;
 }
@@ -158,7 +155,7 @@ bool RsyncWorker::readOutPipe( Poco::PipeInputStream & stream )
 
     for ( std::vector<std::string>::const_iterator it = tok.begin(); it != tok.end(); it++ ) {
 
-        logger_.information( Poco::format("%s: %s", name_, *it ) );
+        logger_.information( Poco::format("%s: rsync: %s", name_, *it ) );
     }
 
     return true;
@@ -176,7 +173,7 @@ bool RsyncWorker::readErrPipe( Poco::PipeInputStream & stream )
 
     for ( std::vector<std::string>::const_iterator it = tok.begin(); it != tok.end(); it++ ) {
 
-        logger_.error( Poco::format("%s: %s", name_, *it ) );
+        logger_.error( Poco::format("%s: rsync: %s", name_, *it ) );
     }
 
     return true;
@@ -187,8 +184,6 @@ void RsyncWorker::run()
     FUNCTIONTRACE;
 
     Poco::AutoPtr<Poco::Notification> n( queue_->waitDequeueNotification() );
-
-    logger_.information( Poco::format("%s: dequeued", name_ ) );
 
     int zero = 0;
 
@@ -231,11 +226,9 @@ void RsyncWorker::run()
                     else {
                         std::string remotePath = remote_->getHost() + ":" + remote_->getPath();
 
-                        if ( remotePath.back() != '/' ) {
-                            remotePath += Poco::Path::separator();
-                        }
-
                         remotePath += msg->path();
+
+                        localPath = local_.toString() + msg->path();
 
                         logger_.debug( Poco::format("%s: syncing file %s to %s", name_, localPath, remotePath ) );
 
@@ -254,7 +247,6 @@ void RsyncWorker::run()
                 if ( msg ) {
 
                     std::string localPath = msg->path();
-                    logger_.debug( "LOCAL " + localPath );
 
                     bool ignoreThisFile = false;
 
@@ -277,13 +269,11 @@ void RsyncWorker::run()
                     else {
                         std::string remotePath = remote_->getHost() + ":" + remote_->getPath();
 
-                        if ( remotePath.back() != '/' ) {
-                            remotePath += Poco::Path::separator();
-                        }
-
                         remotePath += msg->path();
-                        logger_.debug( Poco::format("%s: syncing dir %s to %s", name_, localPath, remotePath ) );
 
+                        localPath = local_.toString() + msg->path();
+                        
+                        logger_.debug( Poco::format("%s: syncing dir %s to %s", name_, localPath, remotePath ) );
 
                         runRsync ( localPath, remotePath );
 
