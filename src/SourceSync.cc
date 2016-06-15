@@ -309,7 +309,7 @@ int SourceSync::main( const std::vector<std::string> &args ) {
 
     if ( config().getString( CONFIG_VERSION ).empty() ) {
 
-        std::cout << APPNAME << " version " << MAJORVERSION << "." << MINORVERSION << "." << PATCHVERSION << "-" << BUILDID << COMMIT << std::endl; 
+        std::cout << APPNAME << " version " << MAJORVERSION << "." << MINORVERSION << "." << PATCHVERSION << "-" << COMMIT << " #" << BUILDID << std::endl;
         return Poco::Util::Application::EXIT_OK;
     }
 
