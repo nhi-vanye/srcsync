@@ -163,10 +163,6 @@ void AcrosyncWorker::run()
                     else {
                         std::string remotePath = remote_->getPath();
 
-                        if ( remotePath.back() != '/' ) {
-                            remotePath += Poco::Path::separator();
-                        }
-
                         remotePath += msg->path();
 
                         logger_.debug( Poco::format("%s: syncing file %s to %s", name_, localPath, remotePath ) );
@@ -174,9 +170,12 @@ void AcrosyncWorker::run()
 
                         files.insert( localPath );
 
-                        int numFiles = client.upload( localPath.c_str(), remotePath.c_str(), &files );
+                        if ( Poco::Util::Application::instance().config().getString( CONFIG_DRYRUN).empty() == false ) {
+                            int numFiles = client.upload( localPath.c_str(), remotePath.c_str(), &files );
 
-                        logger_.notice( Poco::format("Updated %d file(s) %s", numFiles, localPath) );
+                            logger_.notice( Poco::format("Updated %d file(s) %s", numFiles, localPath) );
+                        }
+
                         logger_.debug( Poco::format("%s: updated %s", name_, localPath) );
                     }
 
@@ -212,16 +211,15 @@ void AcrosyncWorker::run()
                     else {
                         std::string remotePath = remote_->getPath();
 
-                        if ( remotePath.back() != '/' ) {
-                            remotePath += Poco::Path::separator();
-                        }
-
                         remotePath += msg->path();
                         logger_.debug( Poco::format("%s: syncing dir %s to %s", name_, localPath, remotePath ) );
 
-                        int numFiles = client.upload( localPath.c_str(), remotePath.c_str() );
+                        if ( Poco::Util::Application::instance().config().getString( CONFIG_DRYRUN).empty() == false ) {
+                            int numFiles = client.upload( localPath.c_str(), remotePath.c_str() );
 
-                        logger_.notice( Poco::format("Updated %d file(s) %s", numFiles, localPath) );
+                            logger_.notice( Poco::format("Updated %d file(s) %s", numFiles, localPath) );
+                        }
+
                         logger_.debug( Poco::format("%s: updated %s", name_, localPath) );
                     }
                 }

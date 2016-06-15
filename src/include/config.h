@@ -19,6 +19,7 @@
 #define CONFIG_VERBOSE                  APPNAME ".verbose"  // --verbose
 #define CONFIG_PROFILE                  APPNAME ".profile"  // --profile
 #define CONFIG_IGNORE                   APPNAME ".ignore"   // --ignore
+#define CONFIG_DRYRUN                   APPNAME ".dryrun"   // --dry-run
 #define CONFIG_SYNC_METHOD              APPNAME ".sync-method"   // --method
 #define CONFIG_SYNC_METHOD_ACROSYNC     "acrosync"
 #define CONFIG_SYNC_METHOD_RSYNC        "rsync"

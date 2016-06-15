@@ -242,11 +242,17 @@ void SourceSync::defineOptions( Poco::Util::OptionSet &options )
             .argument( "METHOD" )
             .binding( CONFIG_SYNC_METHOD ) );
 
+    options.addOption(
+            Poco::Util::Option( "dry-run", "-n", "Try to synchronize, but don't" )
+            .required( false )
+            .repeatable( false )
+            .binding( CONFIG_DRYRUN ) );
 
     config().setString( CONFIG_HELP, "-false-");
     config().setString( CONFIG_SRC, "");
     config().setString( CONFIG_DEST, "");
     config().setString( CONFIG_SYNC_METHOD, "rsync");
+    config().setString( CONFIG_DRYRUN, "false");
 };
 
 void SourceSync::handleVerbose(const std::string &name, const std::string &value)
@@ -314,6 +320,16 @@ int SourceSync::main( const std::vector<std::string> &args ) {
         if ( config().getString( CONFIG_DEST, "").empty() ) {
 
             throw Poco::Exception( "No destination argument specified" );
+        }
+
+        // ensure we always have src and destination ending with '/'
+        if ( config().getString( CONFIG_SRC).back() != '/' ) {
+
+            config().setString( CONFIG_SRC, config().getString( CONFIG_SRC) + Poco::Path::separator() );
+        }
+        if ( config().getString( CONFIG_DEST).back() != '/' ) {
+
+            config().setString( CONFIG_DEST, config().getString( CONFIG_DEST) + Poco::Path::separator() );
         }
 
         logger().notice( Poco::format( "Syncing from %s to %s", 
