@@ -256,10 +256,11 @@ void SourceSync::defineOptions( Poco::Util::OptionSet &options )
             .binding( CONFIG_DRYRUN ) );
 
     config().setString( CONFIG_HELP, "-false-");
+    config().setString( CONFIG_VERSION, "-false-");
     config().setString( CONFIG_SRC, "");
     config().setString( CONFIG_DEST, "");
     config().setString( CONFIG_SYNC_METHOD, "rsync");
-    config().setString( CONFIG_DRYRUN, "false");
+    config().setString( CONFIG_DRYRUN, "-false-");
 };
 
 void SourceSync::handleVerbose(const std::string &name, const std::string &value)
