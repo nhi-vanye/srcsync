@@ -7,6 +7,10 @@
 #include "Poco/ActiveMethod.h"
 #include "Poco/PipeStream.h"
 
+#if USE_GROWL
+#include "growl.hpp"
+#endif
+
 #include "Queue.h"
 
 class RsyncWorker : public SyncWorker
@@ -31,6 +35,10 @@ class RsyncWorker : public SyncWorker
         std::string private_key_;
 
         Poco::Path local_;
+
+#if USE_GROWL
+        Poco::SharedPtr<Growl> growl_;
+#endif
 
     protected:
         
