@@ -15,7 +15,7 @@ diff -up ./CMakeLists.txt.pre-rmo ./CMakeLists.txt
 +
 +LINK_DIRECTORIES( 
 +    ${OPENSSL_LIB_DIR}
-+    ${srcsync_BINARY_DIR}/usr/local/lib
++    ${srcsync_BINARY_DIR}/usr/local/lib /usr/local/opt/libiconv/lib
 +)
 +
 +ADD_LIBRARY(acrosync SHARED

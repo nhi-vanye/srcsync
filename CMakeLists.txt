@@ -31,10 +31,12 @@ INCLUDE_DIRECTORIES(
     ${srcsync_BINARY_DIR}/usr/local/include/libssh
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include
     /usr/local/opt/gettext/include
+    ${srcsync_BINARY_DIR}/gntp-git-prefix/src/gntp-git/include
 )
 
 LINK_DIRECTORIES( 
     ${srcsync_BINARY_DIR}/usr/local/lib
+    ${srcsync_BINARY_DIR}/gntp-git-prefix/src/gntp-git-build/
     /opt/local/lib/
     /usr/local/opt/gettext/lib
     ${OPENSSL_LIB_DIR}
@@ -62,6 +64,7 @@ ENDIF ( CMAKE_SYSTEM MATCHES "Darwin" )
 #
 OPTION( USE_LIBFSWATCH "Use libfswatch library" ${USE_LIBFSWATCH_DEFAULT} )
 OPTION( USE_ACROSYNC "Use acrosync library" 1 )
+OPTION( USE_GROWL "Use growl for notifications" 1 )
 
 SET ( SRCS src/SourceSync.cc src/Queue.cc src/AcrosyncWorker.cc src/RsyncWorker.cc )
 
@@ -74,6 +77,8 @@ SET ( INSTALL_LIBS
     ${srcsync_BINARY_DIR}/usr/local/lib/libPocoUtil.43.dylib
     ${srcsync_BINARY_DIR}/usr/local/lib/libPocoFoundation.43.dylib
     ${srcsync_BINARY_DIR}/usr/local/lib/libacrosync.dylib
+
+    ${srcsync_BINARY_DIR}/gntp-git-prefix/src/gntp-git-build/libgrowl++.dylib
 )
 
  
@@ -106,6 +111,16 @@ IF ( USE_ACROSYNC )
   SET( COMPILE_DEFINITIONS "${COMPILE_DEFINITIONS};USE_ACROSYNC" )
 
 ENDIF ( USE_ACROSYNC ) 
+
+
+IF ( USE_GROWL )
+
+  LIST( APPEND LINK_LIBS growl++ )
+
+  LIST( APPEND DEPENDENCIES gntp-git )
+
+  SET( COMPILE_DEFINITIONS "${COMPILE_DEFINITIONS};USE_GROWL" )
+ENDIF ( USE_GROWL )
 
 SET( COMPILE_DEFINITIONS "${COMPILE_DEFINITIONS};MAJORVERSION=${VER_MAJOR};MINORVERSION=${VER_MINOR};PATCHVERSION=${VER_PATCH};BUILDID=\"${BUILD_ID}\";COMMIT=\"${GIT_COMMIT}\"" )
 
@@ -288,4 +303,20 @@ ExternalProject_Add(
     INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} install DESTDIR=${PROJECT_BINARY_DIR}
 
 )
+
+
+IF ( USE_GROWL )
+
+ExternalProject_Add(
+    "gntp-git"
+
+    GIT_REPOSITORY "https://github.com/mattn/gntp-send.git"
+
+    CMAKE_ARGS -Wno-dev  -Dsrcsync_BINARY_DIR:STATIC=${PROJECT_BINARY_DIR}
+
+    INSTALL_COMMAND ""
+
+)
+
+ENDIF ( USE_GROWL )
 

@@ -17,8 +17,18 @@
 #include "SourceSync.h"
 #include "RsyncWorker.h"
 
+#if USE_GROWL
+#include "growl.hpp"
+#endif
+
 #include "config.h"
 
+#if USE_GROWL
+static const char *notifications[] = {
+    "success",
+    "failued"
+};
+#endif
 
 RsyncWorker::RsyncWorker ( const std::string &name, Poco::PriorityNotificationQueue *queue) : SyncWorker(name, queue), logger_(Poco::Logger::get("RsyncWorker")), readStdOut(this, &RsyncWorker::readOutPipe), readStdErr(this, &RsyncWorker::readErrPipe)
 { 
@@ -44,7 +54,6 @@ RsyncWorker::RsyncWorker ( const std::string &name, Poco::PriorityNotificationQu
         }
 
     }
-
 
     initialize();
 }
@@ -77,6 +86,8 @@ void RsyncWorker::initialize()
 
 bool RsyncWorker::runRsync( const std::string & from, const std::string &to )
 {
+
+    bool success = false;
 
     Poco::Process::Args args;
 
@@ -135,10 +146,19 @@ bool RsyncWorker::runRsync( const std::string & from, const std::string &to )
         readOutPipe( outStream );
         readErrPipe( errStream );
 
-        handle.wait();
+        int ret = handle.wait();
+
+        if ( ret == 0 ) {
+
+            success = true;
+        }
+        else {
+
+            success = false;
+        }
     }
 
-    return true;
+    return success;
 }
 
 bool RsyncWorker::readOutPipe( Poco::PipeInputStream & stream )
@@ -219,6 +239,10 @@ void RsyncWorker::run()
 
                     if ( ignoreThisFile ) {
                         logger_.notice( Poco::format("%s: Ignoring %s", name_, localPath) );
+#if USE_GROWL
+                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,"gntp_send++",(const char **const)notifications,2));
+                            growl->Notify("success","Updated", Poco::format("Ignoring %s", localPath).c_str());
+#endif
                     }
                     else {
                         std::string remotePath = remote_->getHost() + ":" + remote_->getPath();
@@ -229,9 +253,24 @@ void RsyncWorker::run()
 
                         logger_.debug( Poco::format("%s: syncing file %s to %s", name_, localPath, remotePath ) );
 
-                        runRsync ( localPath, remotePath );
+                        bool st = runRsync ( localPath, remotePath );
 
-                        logger_.notice( Poco::format("%s: Updated %s", name_, localPath) );
+                        if ( st ) {
+                            logger_.notice( Poco::format("%s: Updated %s", name_, localPath) );
+
+#if USE_GROWL
+                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,"gntp_send++",(const char **const)notifications,2));
+
+                            growl->Notify("success","Updated", Poco::format("Updated %s", localPath).c_str() );
+#endif
+                        }
+                        else {
+#if USE_GROWL
+                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,"gntp_send++",(const char **const)notifications,2));
+                            growl->Notify("failed","Failed", Poco::format("Failed to update %s", localPath).c_str());
+#endif
+                            logger_.error( Poco::format("%s: Failed updating %s", name_, localPath) );
+                        }
                     }
 
                 }
@@ -262,6 +301,10 @@ void RsyncWorker::run()
 
                     if ( ignoreThisFile ) {
                         logger_.notice( Poco::format("%s: Ignoring %s", name_, localPath) );
+#if USE_GROWL
+                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,"gntp_send++",(const char **const)notifications,2));
+                            growl->Notify("success","Updated", Poco::format("Ignoring %s", localPath).c_str());
+#endif
                     }
                     else {
                         std::string remotePath = remote_->getHost() + ":" + remote_->getPath();
@@ -272,9 +315,22 @@ void RsyncWorker::run()
                         
                         logger_.debug( Poco::format("%s: syncing dir %s to %s", name_, localPath, remotePath ) );
 
-                        runRsync ( localPath, remotePath );
+                        bool st = runRsync ( localPath, remotePath );
 
-                        logger_.notice( Poco::format("%s: Updated %s", name_, localPath) );
+                        if ( st ) {
+                            logger_.notice( Poco::format("%s: Updated %s", name_, localPath) );
+#if USE_GROWL
+                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,"gntp_send++",(const char **const)notifications,2));
+                            growl->Notify("success","Updated", Poco::format("Updated %s", localPath).c_str());
+#endif
+                        }
+                        else {
+#if USE_GROWL
+                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,"gntp_send++",(const char **const)notifications,2));
+                            growl->Notify("failed","Failed", Poco::format("Failed to update %s", localPath).c_str());
+#endif
+                            logger_.error( Poco::format("%s: Failed updating %s", name_, localPath) );
+                        }
                     }
                 }
 
