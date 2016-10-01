@@ -37,6 +37,8 @@
 #define CONFIG_RSYNC_SSH_KEYFILE        APPNAME ".rsync.ssh.keyfile"
 #define CONFIG_RSYNC_PROTOCOL_VERSION   APPNAME ".rsync.protocol.version"
 
+// notifications
+#define CONFIG_GROWL_ICON               APPNAME ".grown.icon"
 
 // libfswatch
 

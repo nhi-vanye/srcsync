@@ -145,6 +145,9 @@ TARGET_LINK_LIBRARIES( srcsync ${LINK_LIBS} )
 ADD_DEPENDENCIES( srcsync ${DEPENDENCIES} )
 
 
+CONFIGURE_FILE(srcsync.png ${srcsync_BINARY_DIR}/share/srcsync.png COPYONLY )
+
+
 INSTALL( 
     TARGETS srcsync
 
@@ -155,6 +158,12 @@ INSTALL(
     FILES ${INSTALL_LIBS}
 
     DESTINATION lib
+)
+
+INSTALL(
+    FILES 
+        srcsync.png
+    DESTINATION share
 )
 
 ###############################################################################

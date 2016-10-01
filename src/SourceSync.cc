@@ -188,7 +188,7 @@ void SourceSync::defineOptions( Poco::Util::OptionSet &options )
 
     // a profile is really a config file that is specific for a remote host...
     options.addOption(
-            Poco::Util::Option( "profile", "", "Load profile from FILE" )
+            Poco::Util::Option( "profile", "", "Load profile from FILE (not yet implmented)" )
             .required( false )
             .repeatable( false )
             .argument( "FILE" )
@@ -261,6 +261,9 @@ void SourceSync::defineOptions( Poco::Util::OptionSet &options )
     config().setString( CONFIG_DEST, "");
     config().setString( CONFIG_SYNC_METHOD, "rsync");
     config().setString( CONFIG_DRYRUN, "-false-");
+
+    config().setString( CONFIG_GROWL_ICON, "share/srcsync.png");
+
 };
 
 void SourceSync::handleVerbose(const std::string &name, const std::string &value)
