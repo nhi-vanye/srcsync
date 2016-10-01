@@ -25,10 +25,11 @@
 
 #if USE_GROWL
 static const char *notifications[] = {
-    "success",
-    "failued"
+    "sync",
 };
 #endif
+
+#define COUNT(a) sizeof(a)/sizeof(*a)
 
 RsyncWorker::RsyncWorker ( const std::string &name, Poco::PriorityNotificationQueue *queue) : SyncWorker(name, queue), logger_(Poco::Logger::get("RsyncWorker")), readStdOut(this, &RsyncWorker::readOutPipe), readStdErr(this, &RsyncWorker::readErrPipe)
 { 
@@ -240,8 +241,8 @@ void RsyncWorker::run()
                     if ( ignoreThisFile ) {
                         logger_.notice( Poco::format("%s: Ignoring %s", name_, localPath) );
 #if USE_GROWL
-                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,"gntp_send++",(const char **const)notifications,2));
-                            growl->Notify("success","Updated", Poco::format("Ignoring %s", localPath).c_str());
+                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,APPNAME,(const char **const)notifications,COUNT(notifications)));
+                            growl->Notify("sync","Updated", Poco::format("Ignoring %s", localPath).c_str());
 #endif
                     }
                     else {
@@ -259,15 +260,44 @@ void RsyncWorker::run()
                             logger_.notice( Poco::format("%s: Updated %s", name_, localPath) );
 
 #if USE_GROWL
-                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,"gntp_send++",(const char **const)notifications,2));
+                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,APPNAME,(const char **const)notifications,COUNT(notifications)));
 
-                            growl->Notify("success","Updated", Poco::format("Updated %s", localPath).c_str() );
+                            if ( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON, "").empty() == false ) {
+
+                                Poco::Path iconPath( Poco::Util::Application::instance().config().getString("application.dir") + Poco::Path::separator() );
+
+                                iconPath.append( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON) );
+
+                                logger_.error( iconPath.toString() );
+
+                                growl->Notify("sync","Updated", 
+                                        Poco::format("Updated %s", localPath).c_str(), 
+                                        "http://whitequeen.gitlab.io/srcsync",
+                                        iconPath.toString().c_str() );
+                            }
+                            else {
+                                growl->Notify("sync","Updated", Poco::format("Updated %s", localPath).c_str() );
+                            }
 #endif
                         }
                         else {
 #if USE_GROWL
-                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,"gntp_send++",(const char **const)notifications,2));
-                            growl->Notify("failed","Failed", Poco::format("Failed to update %s", localPath).c_str());
+                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,APPNAME,(const char **const)notifications,COUNT(notifications)));
+
+                            if ( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON, "").empty() == false ) {
+
+                                Poco::Path iconPath( Poco::Util::Application::instance().config().getString("application.dir") + Poco::Path::separator() );
+
+                                iconPath.append( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON) );
+
+                                growl->Notify("sync","Failed", 
+                                        Poco::format("Failed to update %s", localPath).c_str(),
+                                        "http://whitequeen.gitlab.io/srcsync",
+                                        iconPath.toString().c_str() );
+                            }
+                            else {
+                                growl->Notify("sync","Failed", Poco::format("Failed to update %s", localPath).c_str());
+                            }
 #endif
                             logger_.error( Poco::format("%s: Failed updating %s", name_, localPath) );
                         }
@@ -302,8 +332,8 @@ void RsyncWorker::run()
                     if ( ignoreThisFile ) {
                         logger_.notice( Poco::format("%s: Ignoring %s", name_, localPath) );
 #if USE_GROWL
-                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,"gntp_send++",(const char **const)notifications,2));
-                            growl->Notify("success","Updated", Poco::format("Ignoring %s", localPath).c_str());
+                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,APPNAME,(const char **const)notifications,COUNT(notifications)));
+                            growl->Notify("sync","Updated", Poco::format("Ignoring %s", localPath).c_str());
 #endif
                     }
                     else {
@@ -320,14 +350,41 @@ void RsyncWorker::run()
                         if ( st ) {
                             logger_.notice( Poco::format("%s: Updated %s", name_, localPath) );
 #if USE_GROWL
-                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,"gntp_send++",(const char **const)notifications,2));
-                            growl->Notify("success","Updated", Poco::format("Updated %s", localPath).c_str());
+                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,APPNAME,(const char **const)notifications,COUNT(notifications)));
+                            if ( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON, "").empty() == false ) {
+
+                                Poco::Path iconPath( Poco::Util::Application::instance().config().getString("application.dir") + Poco::Path::separator() );
+
+                                iconPath.append( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON) );
+
+                                growl->Notify("sync","Updated", 
+                                        Poco::format("Updated %s", localPath).c_str(), 
+                                        "http://whitequeen.gitlab.io/srcsync",
+                                        iconPath.toString().c_str() );
+                            }
+                            else {
+                                growl->Notify("sync","Updated", Poco::format("Updated %s", localPath).c_str());
+                            }
 #endif
                         }
                         else {
 #if USE_GROWL
-                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,"gntp_send++",(const char **const)notifications,2));
-                            growl->Notify("failed","Failed", Poco::format("Failed to update %s", localPath).c_str());
+                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0, APPNAME,(const char **const)notifications,COUNT(notifications)));
+
+                            if ( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON, "").empty() == false ) {
+
+                                Poco::Path iconPath( Poco::Util::Application::instance().config().getString("application.dir") + Poco::Path::separator() );
+
+                                iconPath.append( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON) );
+
+                                growl->Notify("sync","Failed", 
+                                        Poco::format("Failed to update %s", localPath).c_str(),
+                                        "http://whitequeen.gitlab.io/srcsync",
+                                        iconPath.toString().c_str() );
+                            }
+                            else {
+                                growl->Notify("sync","Failed", Poco::format("Failed to update %s", localPath).c_str());
+                            }
 #endif
                             logger_.error( Poco::format("%s: Failed updating %s", name_, localPath) );
                         }
