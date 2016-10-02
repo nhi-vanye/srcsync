@@ -240,10 +240,6 @@ void RsyncWorker::run()
 
                     if ( ignoreThisFile ) {
                         logger_.notice( Poco::format("%s: Ignoring %s", name_, localPath) );
-#if USE_GROWL
-                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,APPNAME,(const char **const)notifications,COUNT(notifications)));
-                            growl->Notify("sync","Updated", Poco::format("Ignoring %s", localPath).c_str());
-#endif
                     }
                     else {
                         std::string remotePath = remote_->getHost() + ":" + remote_->getPath();
@@ -331,10 +327,6 @@ void RsyncWorker::run()
 
                     if ( ignoreThisFile ) {
                         logger_.notice( Poco::format("%s: Ignoring %s", name_, localPath) );
-#if USE_GROWL
-                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,APPNAME,(const char **const)notifications,COUNT(notifications)));
-                            growl->Notify("sync","Updated", Poco::format("Ignoring %s", localPath).c_str());
-#endif
                     }
                     else {
                         std::string remotePath = remote_->getHost() + ":" + remote_->getPath();
