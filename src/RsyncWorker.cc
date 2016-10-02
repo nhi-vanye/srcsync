@@ -264,19 +264,21 @@ void RsyncWorker::run()
 
                                 iconPath.append( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON) );
 
-                                logger_.error( iconPath.toString() );
-
-                                growl->Notify("sync","Updated", 
-                                        Poco::format("Updated %s", localPath).c_str(), 
+                                growl->Notify("sync",
+                                        msg->path().c_str(),
+                                        Poco::format("Updated File\n  %s", msg->path()).c_str(), 
                                         "http://whitequeen.gitlab.io/srcsync",
                                         iconPath.toString().c_str() );
                             }
                             else {
-                                growl->Notify("sync","Updated", Poco::format("Updated %s", localPath).c_str() );
+                                growl->Notify("sync",
+                                        msg->path().c_str(),
+                                        Poco::format("Updated File\n  %s", msg->path()).c_str() );
                             }
 #endif
                         }
                         else {
+                            logger_.error( Poco::format("%s: Failed updating %s", name_, localPath) );
 #if USE_GROWL
                             std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,APPNAME,(const char **const)notifications,COUNT(notifications)));
 
@@ -286,16 +288,18 @@ void RsyncWorker::run()
 
                                 iconPath.append( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON) );
 
-                                growl->Notify("sync","Failed", 
-                                        Poco::format("Failed to update %s", localPath).c_str(),
+                                growl->Notify("sync",
+                                        msg->path().c_str(),
+                                        Poco::format("Failed to update\n  %s", msg->path()).c_str(),
                                         "http://whitequeen.gitlab.io/srcsync",
                                         iconPath.toString().c_str() );
                             }
                             else {
-                                growl->Notify("sync","Failed", Poco::format("Failed to update %s", localPath).c_str());
+                                growl->Notify("sync",
+                                        msg->path().c_str(),
+                                        Poco::format("Failed to update\n  %s", msg->path()).c_str());
                             }
 #endif
-                            logger_.error( Poco::format("%s: Failed updating %s", name_, localPath) );
                         }
                     }
 
@@ -342,43 +346,57 @@ void RsyncWorker::run()
                         if ( st ) {
                             logger_.notice( Poco::format("%s: Updated %s", name_, localPath) );
 #if USE_GROWL
-                            std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,APPNAME,(const char **const)notifications,COUNT(notifications)));
-                            if ( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON, "").empty() == false ) {
+                            if ( Poco::Util::Application::instance().config().getBool( CONFIG_GROWL_UPDATE_DIR , false ) ) {
 
-                                Poco::Path iconPath( Poco::Util::Application::instance().config().getString("application.dir") + Poco::Path::separator() );
+                                std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0,APPNAME,(const char **const)notifications,COUNT(notifications)));
 
-                                iconPath.append( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON) );
+                                if ( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON, "").empty() == false ) {
 
-                                growl->Notify("sync","Updated", 
-                                        Poco::format("Updated %s", localPath).c_str(), 
-                                        "http://whitequeen.gitlab.io/srcsync",
-                                        iconPath.toString().c_str() );
-                            }
-                            else {
-                                growl->Notify("sync","Updated", Poco::format("Updated %s", localPath).c_str());
+                                    Poco::Path iconPath( Poco::Util::Application::instance().config().getString("application.dir") + Poco::Path::separator() );
+
+                                    iconPath.append( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON) );
+
+                                    growl->Notify("sync",
+                                            msg->path().c_str(),
+                                            Poco::format("Updated Directory\n  %s", msg->path()).c_str(), 
+                                            "http://whitequeen.gitlab.io/srcsync",
+                                            iconPath.toString().c_str() );
+                                }
+                                else {
+                                    growl->Notify("sync",
+                                            localPath.c_str(),
+                                            Poco::format("Updated Directory\n  %s", localPath).c_str());
+                                }
                             }
 #endif
                         }
                         else {
+                            logger_.error( Poco::format("%s: Failed updating %s", name_, localPath) );
+
 #if USE_GROWL
                             std::auto_ptr<Growl> growl( new Growl(GROWL_TCP,0, APPNAME,(const char **const)notifications,COUNT(notifications)));
 
-                            if ( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON, "").empty() == false ) {
+                            if ( Poco::Util::Application::instance().config().getBool( CONFIG_GROWL_UPDATE_DIR , false ) ) {
 
-                                Poco::Path iconPath( Poco::Util::Application::instance().config().getString("application.dir") + Poco::Path::separator() );
+                                if ( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON, "").empty() == false ) {
 
-                                iconPath.append( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON) );
+                                    Poco::Path iconPath( Poco::Util::Application::instance().config().getString("application.dir") + Poco::Path::separator() );
 
-                                growl->Notify("sync","Failed", 
-                                        Poco::format("Failed to update %s", localPath).c_str(),
-                                        "http://whitequeen.gitlab.io/srcsync",
-                                        iconPath.toString().c_str() );
-                            }
-                            else {
-                                growl->Notify("sync","Failed", Poco::format("Failed to update %s", localPath).c_str());
+                                    iconPath.append( Poco::Util::Application::instance().config().getString( CONFIG_GROWL_ICON) );
+
+                                    growl->Notify("sync",
+                                            msg->path().c_str(), // "Failed", 
+                                            Poco::format("Failed to update directory\n  %s", msg->path()).c_str(),
+                                            "http://whitequeen.gitlab.io/srcsync",
+                                            iconPath.toString().c_str() );
+                                }
+                                else {
+                                    growl->Notify("sync",
+                                            localPath.c_str(), // "Failed", 
+                                            Poco::format("Failed to update\n  %s", localPath).c_str());
+                                }
                             }
 #endif
-                            logger_.error( Poco::format("%s: Failed updating %s", name_, localPath) );
                         }
                     }
                 }
