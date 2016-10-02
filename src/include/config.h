@@ -39,6 +39,7 @@
 
 // notifications
 #define CONFIG_GROWL_ICON               APPNAME ".grown.icon"
+#define CONFIG_GROWL_UPDATE_DIR         APPNAME ".grown.update-dir"
 
 // libfswatch
 

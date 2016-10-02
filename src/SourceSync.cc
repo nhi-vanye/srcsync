@@ -111,7 +111,6 @@ void SourceSync::initialize( Poco::Util::Application &self )
 
         logger().information( "Log configuration file '" + logConfigPath + "' not found, using defaults");
 
-        config().setString("logging.loggers.root.level", "notice");
         config().setString("logging.loggers.root.channel", "c1");
         config().setString("logging.formatters.f1.class", "PatternFormatter");
         config().setString("logging.formatters.f1.pattern", "%L%H:%M:%S [%q] %t"); // %L converts to local time
@@ -378,6 +377,7 @@ int SourceSync::main( const std::vector<std::string> &args ) {
         while ( jobCount_.value() != 0 ) {
 
             Poco::Thread::sleep(15000);
+            logger().debug( Poco::format("jobCount=%d", jobCount_.value()) );
         }
 
         logger().notice("Initial synchronization complete");
